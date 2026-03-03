@@ -1,34 +1,21 @@
-//! LightScript - A modern language inspired by JavaScript's best features
-//!
-//! LightScript 是一个受 JavaScript 启发的现代编程语言，
-//! 保留了 JavaScript 的优秀特性，同时去除了历史包袱。
-
 pub mod lexer;
-pub mod parser;
-pub mod semantic;
-pub mod codegen;
-pub mod ir;
 
-pub use lexer::{Lexer, Token, TokenType};
-pub use parser::{Parser, AST};
-pub use semantic::{SemanticAnalyzer, SymbolTable};
-pub use codegen::CodeGenerator;
+// 暂时注释掉未实现的模块
+// pub mod parser;
+// pub mod semantic;
+// pub mod ir;
+// pub mod codegen;
 
-use thiserror::Error;
+pub use lexer::{Lexer, Token};
 
-#[derive(Error, Debug)]
-pub enum LightScriptError {
-    #[error("Lexer error: {0}")]
-    LexerError(String),
-    
-    #[error("Parser error: {0}")]
-    ParserError(String),
-    
-    #[error("Semantic error: {0}")]
-    SemanticError(String),
-    
-    #[error("Code generation error: {0}")]
-    CodeGenError(String),
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_lexer() {
+        let mut lexer = Lexer::new("let x = 42;");
+        let tokens = lexer.tokenize().unwrap();
+        assert!(tokens.len() > 0);
+    }
 }
-
-pub type Result<T> = std::result::Result<T, LightScriptError>;
