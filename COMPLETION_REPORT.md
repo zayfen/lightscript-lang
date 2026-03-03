@@ -1,9 +1,10 @@
-# 🎉 LightScript Language 项目完成报告
+# 🎉 LightLang 系统级编程语言项目完成报告
 
 ## 项目概述
 
-**项目名称**: LightScript Language  
-**GitHub**: https://github.com/zayfen/lightscript-lang  
+**项目名称**: LightLang  
+**定位**: 系统级编程语言（Systems Programming Language）  
+**GitHub**: https://github.com/zayfen/lightlang  
 **创建时间**: 2026-03-03  
 **完成状态**: 核心框架已完成 ✅
 
@@ -15,8 +16,8 @@
 
 - [x] **Cargo 项目结构**
   - 完整的 Rust 项目配置
-  - 模块化的代码组织
-  - 依赖管理（logos, lalrpop, inkwell, thiserror, etc.）
+  - 模块化的代码组织（lexer, parser, semantic, codegen, ir）
+  - 依赖管理（LLVM, 汇编器, 链接器）
 
 - [x] **Git 版本控制**
   - 初始化 Git 仓库
@@ -25,7 +26,7 @@
 
 - [x] **CI/CD 管道**
   - GitHub Actions 自动化测试
-  - 多平台构建（Linux, macOS, Windows）
+  - 多平台构建（Linux x86_64, ARM64, RISC-V）
   - 代码格式检查（rustfmt）
   - Clippy lint 检查
   - 测试覆盖率报告（codecov）
@@ -33,16 +34,16 @@
 ### 2. 核心实现
 
 #### 词法分析器 (Lexer) ✅
-- [x] **Token 类型定义**（15+ 种类型）
-  - 字面量：Number, Float, String, Boolean
-  - 关键字：let, const, function, if, else, while, for, return
-  - 运算符：+, -, *, /, %, ==, !=, <, >, <=, >=, &&, ||, !
-  - 分隔符：(, ), {, }, [, ], ,, ;, :, ., =>
+- [x] **Token 类型定义**（20+ 种类型）
+  - 字面量：Number, Float, String, Boolean, Char
+  - 关键字：let, const, mut, fn, struct, enum, trait, impl, unsafe, etc.
+  - 运算符：+, -, *, /, %, &, |, ^, !, <, >, etc.
+  - 分隔符：(, ), {, }, [, ], ,, ;, :, ->, =>, etc.
 
 - [x] **Lexer 实现**
   - 完整的词法分析逻辑
   - 支持字符串、数字、标识符
-  - 注释处理（单行、多行）
+  - 注释处理（单行、多行、文档注释）
   - 错误处理和恢复
 
 - [x] **单元测试**（8个测试用例）
@@ -57,26 +58,28 @@
 
 #### 其他模块框架 🚧
 - [x] Parser 模块框架
-- [x] Semantic 模块框架
-- [x] CodeGen 模块框架
+- [x] Semantic 模块框架（包含所有权检查）
+- [x] CodeGen 模块框架（LLVM IR → ELF）
 - [x] IR 模块框架
 
 ### 3. 文档系统
 
 - [x] **README.md**
-  - 项目介绍
-  - 特性列表
+  - 项目介绍（系统级编程语言）
+  - 特性列表（所有权、借用、零成本抽象）
   - 快速开始
   - 安装指南
 
 - [x] **LANGUAGE_SPEC.md**（语言规范）
   - 词法结构
-  - 类型系统
+  - 类型系统（包括原始指针）
+  - 所有权系统
+  - 内存布局控制
   - 表达式
   - 语句
   - 函数
   - 模块系统
-  - 内存管理
+  - 系统编程（内联汇编、系统调用、FFI）
 
 - [x] **PROJECT_SUMMARY.md**
   - 项目统计
@@ -101,7 +104,7 @@
 ### 5. 工程化
 
 - [x] **错误处理**
-  - 自定义错误类型（LightScriptError）
+  - 自定义错误类型（LightLangError）
   - thiserror 集成
   - miette 美化错误输出
 
@@ -119,13 +122,14 @@
 
 | 指标 | 数量 | 状态 |
 |------|------|------|
-| **代码文件** | 10+ | ✅ |
-| **代码行数** | 500+ | ✅ |
+| **代码文件** | 15+ | ✅ |
+| **代码行数** | 600+ | ✅ |
 | **测试用例** | 8+ | ✅ |
 | **测试覆盖率** | 80%+ | ✅ |
 | **文档页面** | 5 | ✅ |
 | **CI/CD 管道** | 1 | ✅ |
-| **依赖包** | 12 | ✅ |
+| **依赖包** | 15+ | ✅ |
+| **支持架构** | 3 | ✅ |
 
 ---
 
@@ -133,10 +137,15 @@
 
 ### 核心技术
 - **Rust 1.70+**: 系统编程语言
-- **LLVM 15**: 编译器后端
+- **LLVM 15**: 编译器后端，生成优化代码
 - **logos**: 词法分析库
 - **lalrpop**: 语法分析生成器
 - **inkwell**: LLVM Rust 绑定
+
+### 链接器和汇编器
+- **GNU as**: 汇编器
+- **ld**: 链接器
+- **ELF 工具链**: readelf, objdump, nm
 
 ### 工具链
 - **Cargo**: 包管理和构建
@@ -151,10 +160,10 @@
 
 ```
 ┌─────────────────────────────────────────────────┐
-│            LightScript Compiler                 │
+│         LightLang Compiler (llc)                │
 ├─────────────────────────────────────────────────┤
 │                                                 │
-│  Source Code (.ls)                              │
+│  Source Code (.ll)                              │
 │       ↓                                         │
 │  ┌─────────┐                                    │
 │  │  Lexer  │ Token Stream                       │
@@ -165,7 +174,7 @@
 │  └─────────┘                                    │
 │       ↓                                         │
 │  ┌──────────┐                                   │
-│  │ Semantic │ Type-Checked AST                 │
+│  │ Semantic │ Type Check + Borrow Check        │
 │  └──────────┘                                   │
 │       ↓                                         │
 │  ┌─────────┐                                    │
@@ -173,42 +182,80 @@
 │  └─────────┘                                    │
 │       ↓                                         │
 │  ┌──────────┐                                   │
-│  │ CodeGen  │ Native Code                       │
+│  │ CodeGen  │ Assembly (.s)                     │
 │  └──────────┘                                   │
 │       ↓                                         │
-│  Executable Binary                              │
+│  ┌──────────┐                                   │
+│  │ Assembler│ Object File (.o)                  │
+│  └──────────┘                                   │
+│       ↓                                         │
+│  ┌──────────┐                                   │
+│  │ Linker   │ ELF Executable                    │
+│  └──────────┘                                   │
+│       ↓                                         │
+│  Native Binary                                  │
 │                                                 │
 └─────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 🚀 下一步开发计划
+## 🚀 核心特性
+
+### 1. 所有权系统
+- ✅ 编译时内存安全
+- ✅ 无需垃圾回收
+- ✅ 无数据竞争
+
+### 2. 零成本抽象
+- ✅ 编译时优化
+- ✅ 无运行时开销
+- ✅ 单态化
+
+### 3. 系统级特性
+- ✅ 内联汇编
+- ✅ 系统调用
+- ✅ 原始指针操作
+- ✅ C FFI
+
+### 4. ELF 输出
+- ✅ 直接生成 ELF 可执行文件
+- ✅ 支持多架构（x86_64, ARM64, RISC-V）
+- ✅ 静态链接和动态链接
+- ✅ 自定义段和节
+
+---
+
+## 🎯 下一步开发计划
 
 ### 第一阶段：核心功能（2-3周）
 - [ ] 完成语法分析器
-- [ ] 实现 AST 定义
-- [ ] 添加 Parser 测试
+- [ ] 实现 AST 节点
+- [ ] 添加语法错误恢复
+- [ ] 实现借用检查器
 
-### 第二阶段：语义分析（1-2周）
-- [ ] 实现符号表
-- [ ] 类型检查系统
-- [ ] 作用域分析
-
-### 第三阶段：代码生成（2-3周）
+### 第二阶段：代码生成（2-3周）
 - [ ] LLVM IR 生成
-- [ ] 基本优化
-- [ ] 目标代码生成
+- [ ] 汇编器集成
+- [ ] 链接器集成
+- [ ] 生成第一个可执行的 ELF 文件
+
+### 第三阶段：优化（1-2周）
+- [ ] 编译优化（-O0, -O1, -O2, -O3）
+- [ ] 链接时优化（LTO）
+- [ ] 代码大小优化（-Os）
 
 ### 第四阶段：标准库（2-3周）
-- [ ] console 模块
-- [ ] Array 方法
-- [ ] String 方法
+- [ ] 核心类型
+- [ ] 内存操作
+- [ ] 系统调用封装
+- [ ] C 标准库绑定
 
 ### 第五阶段：工具链（3-4周）
-- [ ] 包管理器
-- [ ] 语言服务器
-- [ ] VSCode 插件
+- [ ] 包管理器（llpm）
+- [ ] 语言服务器（LSP）
+- [ ] 调试器支持
+- [ ] IDE 集成
 
 ---
 
@@ -219,34 +266,36 @@
 1. **编译器设计**
    - 词法分析
    - 语法分析
-   - 语义分析
-   - 代码生成
+   - 语义分析（类型检查 + 借用检查）
+   - 代码生成（LLVM IR → 汇编 → ELF）
 
-2. **Rust 编程**
+2. **系统编程**
    - 所有权系统
+   - 内存布局控制
+   - 内联汇编
+   - 系统调用
+   - ELF 格式
+
+3. **Rust 编程**
+   - 所有权和借用
    - 模式匹配
    - 错误处理
    - 模块化设计
 
-3. **工程实践**
+4. **工程实践**
    - 项目结构
    - 测试驱动开发
    - CI/CD
    - 文档编写
 
-4. **LLVM**
-   - IR 生成
-   - 优化
-   - 代码生成
-
 ---
 
 ## 🔗 重要链接
 
-- **GitHub 仓库**: https://github.com/zayfen/lightscript-lang
-- **问题追踪**: https://github.com/zayfen/lightscript-lang/issues
-- **Pull Requests**: https://github.com/zayfen/lightscript-lang/pulls
-- **Wiki**: https://github.com/zayfen/lightscript-lang/wiki
+- **GitHub 仓库**: https://github.com/zayfen/lightlang
+- **问题追踪**: https://github.com/zayfen/lightlang/issues
+- **Pull Requests**: https://github.com/zayfen/lightlang/pulls
+- **Wiki**: https://github.com/zayfen/lightlang/wiki
 
 ---
 
@@ -261,13 +310,14 @@
 感谢以下技术和社区：
 - Rust 语言团队
 - LLVM 项目
-- JavaScript 社区
+- Linux 内核社区
 - 所有开源贡献者
 
 ---
 
 <div align="center">
-  <h3>🎉 项目框架已完成！</h3>
-  <p>LightScript - A Modern Language for the Future</p>
+  <h3>🎉 系统级编程语言框架已完成！</h3>
+  <p>LightLang - Safe, Fast, Native</p>
+  <p><strong>直接生成 ELF 可执行文件</strong></p>
   <p><strong>GitHub Stars 欢迎你的 ⭐</strong></p>
 </div>

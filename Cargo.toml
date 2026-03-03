@@ -1,17 +1,20 @@
 [package]
-name = "lightscript-lang"
+name = "lightlang"
 version = "0.1.0"
 edition = "2021"
 authors = ["Zayfen <zayfen@example.com>"]
-description = "A modern language inspired by JavaScript's best features, compiled with LLVM"
+description = "A modern systems programming language that compiles to native ELF executables"
 license = "MIT OR Apache-2.0"
-repository = "https://github.com/zayfen/lightscript-lang"
+repository = "https://github.com/zayfen/lightlang"
 readme = "README.md"
-keywords = ["language", "compiler", "javascript", "llvm", "rust"]
-categories = ["compilers", "development-tools"]
+keywords = ["language", "compiler", "systems", "llvm", "elf"]
+categories = ["compilers", "development-tools", "systems-programming"]
 
 [dependencies]
 # Lexer generator
+logos = "0.14"
+
+# Parser generator
 lalrpop-util = "0.20"
 regex = "1.10"
 
@@ -28,6 +31,13 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 tracing = "0.1"
 tracing-subscriber = "0.3"
+
+# ELF manipulation
+goblin = "0.8"
+scroll = "0.12"
+
+# Linker
+linker = "0.1"
 
 [build-dependencies]
 lalrpop = "0.20"
@@ -48,9 +58,9 @@ opt-level = 3
 lto = true
 
 [lib]
-name = "lightscript"
+name = "lightlang"
 path = "src/lib.rs"
 
 [[bin]]
-name = "lsc"
+name = "llc"
 path = "src/main.rs"
