@@ -31,17 +31,18 @@ impl CodeGenerator for ARM64Generator {
     fn generate(&mut self, module: &IRModule) -> Result<String, String> {
         let mut output = String::new();
 
-        output.push_str(".section .text\n");
-        output.push_str(".globl _start\n\n");
+        output.push_str(".text\n");
+        output.push_str(".globl _main\n\n");
 
         for func in &module.functions {
             output.push_str(&self.generate_function(func));
         }
 
+        output.push_str(".globl _start\n");
         output.push_str("_start:\n");
-        output.push_str("    bl main\n");
-        output.push_str("    mov x8, #93\n");
-        output.push_str("    svc #0\n");
+        output.push_str("    bl _main\n");
+        output.push_str("    mov x16, #1\n");
+        output.push_str("    svc #0x80\n");
 
         Ok(output)
     }
@@ -51,7 +52,7 @@ impl ARM64Generator {
     fn generate_function(&mut self, func: &IRFunction) -> String {
         let mut output = String::new();
 
-        output.push_str(&format!("{}:\n", func.name));
+        output.push_str(&format!("_{}:\n", func.name));
         output.push_str("    stp x29, x30, [sp, #-16]!\n");
         output.push_str("    mov x29, sp\n");
 
@@ -322,7 +323,7 @@ impl ARM64Generator {
                     }
                 }
 
-                code.push_str(&format!("    bl {}\n", function));
+                code.push_str(&format!("    bl _{}\n", function));
 
                 if let Some(res) = result {
                     self.alloc_stack(res.clone());
