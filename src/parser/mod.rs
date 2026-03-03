@@ -46,8 +46,21 @@ impl Parser {
 
             _ => {
                 let expr = self.parse_expr()?;
-                self.consume_semicolon()?;
-                Ok(Some(Stmt::Expression(expr)))
+
+                if self.match_token(&Token::Equal) {
+                    self.advance();
+                    let value = self.parse_expr()?;
+                    self.consume_semicolon()?;
+
+                    if let Expr::Identifier(name) = expr {
+                        Ok(Some(Stmt::Assignment { name, value }))
+                    } else {
+                        Err("Invalid assignment target".to_string())
+                    }
+                } else {
+                    self.consume_semicolon()?;
+                    Ok(Some(Stmt::Expression(expr)))
+                }
             }
         }
     }

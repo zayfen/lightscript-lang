@@ -26,6 +26,10 @@ pub enum Stmt {
         init: Option<Expr>,
         is_const: bool,
     },
+    Assignment {
+        name: String,
+        value: Expr,
+    },
     FunctionDecl {
         name: String,
         params: Vec<Param>,
@@ -109,6 +113,7 @@ mod tests {
         let stmt = Stmt::FunctionDecl {
             name: "add".to_string(),
             params: vec!["a".to_string(), "b".to_string()],
+            return_type: Some("i64".to_string()),
             body: vec![Stmt::Return(Some(Expr::Binary {
                 left: Box::new(Expr::Identifier("a".to_string())),
                 op: BinaryOp::Add,

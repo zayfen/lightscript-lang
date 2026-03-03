@@ -60,36 +60,24 @@ impl TypeChecker {
                 Ok(())
             }
 
+            Stmt::Assignment { name, value } => {
+                self.check_expr(value)?;
+
+                if let Some(symbol) = self.symbol_table.lookup(name) {
+                    if symbol.kind == SymbolKind::Constant {
+                        return Err("Cannot assign to constant".to_string());
+                    }
+                }
+
+                Ok(())
+            }
+
             Stmt::FunctionDecl {
                 name,
                 params,
                 return_type,
                 body,
             } => {
-                self.symbol_table.enter_scope();
-
-                for param in params {
-                    let param_type = if let Some(type_name) = &param.type_annotation {
-                        Type::from(type_name.as_str())
-                    } else {
-                        Type::Any
-                    };
-
-                    let symbol = Symbol::new(
-                        param.name.clone(),
-                        SymbolKind::Parameter,
-                        param_type,
-                        self.symbol_table.current_scope_level(),
-                    );
-                    self.symbol_table.define(symbol);
-                }
-
-                for body_stmt in body {
-                    self.check_stmt(body_stmt)?;
-                }
-
-                self.symbol_table.exit_scope();
-
                 let func_type = Type::Function {
                     params: params
                         .iter()
@@ -115,6 +103,30 @@ impl TypeChecker {
                     self.symbol_table.current_scope_level(),
                 );
                 self.symbol_table.define(symbol);
+
+                self.symbol_table.enter_scope();
+
+                for param in params {
+                    let param_type = if let Some(type_name) = &param.type_annotation {
+                        Type::from(type_name.as_str())
+                    } else {
+                        Type::Any
+                    };
+
+                    let symbol = Symbol::new(
+                        param.name.clone(),
+                        SymbolKind::Parameter,
+                        param_type,
+                        self.symbol_table.current_scope_level(),
+                    );
+                    self.symbol_table.define(symbol);
+                }
+
+                for body_stmt in body {
+                    self.check_stmt(body_stmt)?;
+                }
+
+                self.symbol_table.exit_scope();
 
                 Ok(())
             }

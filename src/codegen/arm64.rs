@@ -23,7 +23,35 @@ impl ARM64Generator {
     }
 
     fn get_offset(&self, name: &str) -> Option<i32> {
+        if name.starts_with("arg") {
+            if let Ok(num) = name[3..].parse::<i32>() {
+                return Some(16 + num * 8);
+            }
+        }
         self.var_map.get(name).copied()
+    }
+
+    fn is_arg_var(&self, name: &str) -> bool {
+        name.starts_with("arg")
+    }
+
+    fn load_value(&self, value: &IRValue, dest_reg: &str) -> String {
+        match value {
+            IRValue::Const(n) => format!("    mov {}, #{}\n", dest_reg, n),
+            IRValue::Var(name) => {
+                if self.is_arg_var(name) {
+                    if let Some(offset) = self.get_offset(name) {
+                        self.generate_load(offset, dest_reg)
+                    } else {
+                        String::new()
+                    }
+                } else if let Some(offset) = self.get_offset(name) {
+                    self.generate_load(offset, dest_reg)
+                } else {
+                    String::new()
+                }
+            }
+        }
     }
 }
 
@@ -52,14 +80,34 @@ impl ARM64Generator {
     fn generate_function(&mut self, func: &IRFunction) -> String {
         let mut output = String::new();
 
+        self.var_map.clear();
+        self.stack_size = 0;
+
         output.push_str(&format!("_{}:\n", func.name));
         output.push_str("    stp x29, x30, [sp, #-16]!\n");
         output.push_str("    mov x29, sp\n");
+        output.push_str("    sub sp, sp, #32\n\n");
 
-        let stack_space = self.stack_size + 32;
-        output.push_str(&format!("    sub sp, sp, #{}\n\n", stack_space));
+        let mut param_count = 0;
+        let arg_regs = ["x0", "x1", "x2", "x3", "x4", "x5", "x6", "x7"];
 
         for instr in &func.instructions {
+            if let IRInstruction::Alloc { dest, .. } = instr {
+                if dest.starts_with("arg") {
+                    if let Ok(num) = dest[3..].parse::<usize>() {
+                        if num < arg_regs.len() {
+                            self.alloc_stack(dest.clone());
+                            output.push_str(&format!(
+                                "    str {}, [x29, #-{}]\n",
+                                arg_regs[num],
+                                16 + num * 8
+                            ));
+                            param_count += 1;
+                            continue;
+                        }
+                    }
+                }
+            }
             output.push_str(&self.generate_instruction(instr));
         }
 
@@ -68,6 +116,22 @@ impl ARM64Generator {
         output.push_str("    ret\n\n");
 
         output
+    }
+
+    fn generate_store(&self, reg: &str, offset: i32) -> String {
+        if offset <= 256 {
+            format!("    str {}, [x29, #-{}]\n", reg, offset)
+        } else {
+            format!("    sub x17, x29, #{}\n    str {}, [x17]\n", offset, reg)
+        }
+    }
+
+    fn generate_load(&self, offset: i32, reg: &str) -> String {
+        if offset <= 256 {
+            format!("    ldr {}, [x29, #-{}]\n", reg, offset)
+        } else {
+            format!("    sub x17, x29, #{}\n    ldr {}, [x17]\n", offset, reg)
+        }
     }
 
     fn generate_instruction(&mut self, instr: &IRInstruction) -> String {
@@ -81,13 +145,14 @@ impl ARM64Generator {
                 if let Some(offset) = self.get_offset(dest) {
                     match value {
                         IRValue::Const(n) => {
-                            format!("    mov x0, #{}\n    str x0, [x29, #-{}]\n", n, offset)
+                            format!("    mov x0, #{}\n{}", n, self.generate_store("x0", offset))
                         }
                         IRValue::Var(name) => {
                             if let Some(src_offset) = self.get_offset(name) {
                                 format!(
-                                    "    ldr x0, [x29, #-{}]\n    str x0, [x29, #-{}]\n",
-                                    src_offset, offset
+                                    "{}{}",
+                                    self.generate_load(src_offset, "x0"),
+                                    self.generate_store("x0", offset)
                                 )
                             } else {
                                 String::new()
@@ -104,8 +169,9 @@ impl ARM64Generator {
                     self.alloc_stack(dest.clone());
                     if let Some(dest_offset) = self.get_offset(dest) {
                         format!(
-                            "    ldr x0, [x29, #-{}]\n    str x0, [x29, #-{}]\n",
-                            offset, dest_offset
+                            "{}{}",
+                            self.generate_load(offset, "x0"),
+                            self.generate_store("x0", dest_offset)
                         )
                     } else {
                         String::new()
@@ -126,7 +192,7 @@ impl ARM64Generator {
                         }
                         IRValue::Var(name) => {
                             if let Some(offset) = self.get_offset(name) {
-                                code.push_str(&format!("    ldr x0, [x29, #-{}]\n", offset));
+                                code.push_str(&self.generate_load(offset, "x0"));
                             }
                         }
                     }
@@ -137,15 +203,13 @@ impl ARM64Generator {
                         }
                         IRValue::Var(name) => {
                             if let Some(offset) = self.get_offset(name) {
-                                code.push_str(&format!(
-                                    "    ldr x1, [x29, #-{}]\n    add x0, x0, x1\n",
-                                    offset
-                                ));
+                                code.push_str(&self.generate_load(offset, "x1"));
+                                code.push_str("    add x0, x0, x1\n");
                             }
                         }
                     }
 
-                    code.push_str(&format!("    str x0, [x29, #-{}]\n", dest_offset));
+                    code.push_str(&self.generate_store("x0", dest_offset));
                     code
                 } else {
                     String::new()
@@ -158,27 +222,29 @@ impl ARM64Generator {
                     let mut code = String::new();
 
                     match lhs {
-                        IRValue::Const(n) => code.push_str(&format!("    mov x0, #{}\n", n)),
+                        IRValue::Const(n) => {
+                            code.push_str(&format!("    mov x0, #{}\n", n));
+                        }
                         IRValue::Var(name) => {
                             if let Some(offset) = self.get_offset(name) {
-                                code.push_str(&format!("    ldr x0, [x29, #-{}]\n", offset));
+                                code.push_str(&self.generate_load(offset, "x0"));
                             }
                         }
                     }
 
                     match rhs {
-                        IRValue::Const(n) => code.push_str(&format!("    sub x0, x0, #{}\n", n)),
+                        IRValue::Const(n) => {
+                            code.push_str(&format!("    sub x0, x0, #{}\n", n));
+                        }
                         IRValue::Var(name) => {
                             if let Some(offset) = self.get_offset(name) {
-                                code.push_str(&format!(
-                                    "    ldr x1, [x29, #-{}]\n    sub x0, x0, x1\n",
-                                    offset
-                                ));
+                                code.push_str(&self.generate_load(offset, "x1"));
+                                code.push_str("    sub x0, x0, x1\n");
                             }
                         }
                     }
 
-                    code.push_str(&format!("    str x0, [x29, #-{}]\n", dest_offset));
+                    code.push_str(&self.generate_store("x0", dest_offset));
                     code
                 } else {
                     String::new()
@@ -194,7 +260,7 @@ impl ARM64Generator {
                         IRValue::Const(n) => code.push_str(&format!("    mov x0, #{}\n", n)),
                         IRValue::Var(name) => {
                             if let Some(offset) = self.get_offset(name) {
-                                code.push_str(&format!("    ldr x0, [x29, #-{}]\n", offset));
+                                code.push_str(&self.generate_load(offset, "x0"));
                             }
                         }
                     }
@@ -203,15 +269,13 @@ impl ARM64Generator {
                         IRValue::Const(n) => code.push_str(&format!("    mul x0, x0, #{}\n", n)),
                         IRValue::Var(name) => {
                             if let Some(offset) = self.get_offset(name) {
-                                code.push_str(&format!(
-                                    "    ldr x1, [x29, #-{}]\n    mul x0, x0, x1\n",
-                                    offset
-                                ));
+                                code.push_str(&self.generate_load(offset, "x1"));
+                                code.push_str("    mul x0, x0, x1\n");
                             }
                         }
                     }
 
-                    code.push_str(&format!("    str x0, [x29, #-{}]\n", dest_offset));
+                    code.push_str(&self.generate_store("x0", dest_offset));
                     code
                 } else {
                     String::new()
@@ -227,7 +291,7 @@ impl ARM64Generator {
                         IRValue::Const(n) => code.push_str(&format!("    mov x0, #{}\n", n)),
                         IRValue::Var(name) => {
                             if let Some(offset) = self.get_offset(name) {
-                                code.push_str(&format!("    ldr x0, [x29, #-{}]\n", offset));
+                                code.push_str(&self.generate_load(offset, "x0"));
                             }
                         }
                     }
@@ -238,15 +302,13 @@ impl ARM64Generator {
                         }
                         IRValue::Var(name) => {
                             if let Some(offset) = self.get_offset(name) {
-                                code.push_str(&format!(
-                                    "    ldr x1, [x29, #-{}]\n    sdiv x0, x0, x1\n",
-                                    offset
-                                ));
+                                code.push_str(&self.generate_load(offset, "x1"));
+                                code.push_str("    sdiv x0, x0, x1\n");
                             }
                         }
                     }
 
-                    code.push_str(&format!("    str x0, [x29, #-{}]\n", dest_offset));
+                    code.push_str(&self.generate_store("x0", dest_offset));
                     code
                 } else {
                     String::new()
@@ -262,7 +324,7 @@ impl ARM64Generator {
                         IRValue::Const(n) => code.push_str(&format!("    mov x0, #{}\n", n)),
                         IRValue::Var(name) => {
                             if let Some(offset) = self.get_offset(name) {
-                                code.push_str(&format!("    ldr x0, [x29, #-{}]\n", offset));
+                                code.push_str(&self.generate_load(offset, "x0"));
                             }
                         }
                     }
@@ -271,10 +333,8 @@ impl ARM64Generator {
                         IRValue::Const(n) => code.push_str(&format!("    cmp x0, #{}\n", n)),
                         IRValue::Var(name) => {
                             if let Some(offset) = self.get_offset(name) {
-                                code.push_str(&format!(
-                                    "    ldr x1, [x29, #-{}]\n    cmp x0, x1\n",
-                                    offset
-                                ));
+                                code.push_str(&self.generate_load(offset, "x1"));
+                                code.push_str("    cmp x0, x1\n");
                             }
                         }
                     }
@@ -289,7 +349,7 @@ impl ARM64Generator {
                     };
 
                     code.push_str(&format!("    cset x0, {}\n", cond));
-                    code.push_str(&format!("    str x0, [x29, #-{}]\n", dest_offset));
+                    code.push_str(&self.generate_store("x0", dest_offset));
                     code
                 } else {
                     String::new()
@@ -313,10 +373,7 @@ impl ARM64Generator {
                             }
                             IRValue::Var(name) => {
                                 if let Some(offset) = self.get_offset(name) {
-                                    code.push_str(&format!(
-                                        "    ldr {}, [x29, #-{}]\n",
-                                        arg_regs[i], offset
-                                    ));
+                                    code.push_str(&self.generate_load(offset, arg_regs[i]));
                                 }
                             }
                         }
@@ -328,7 +385,7 @@ impl ARM64Generator {
                 if let Some(res) = result {
                     self.alloc_stack(res.clone());
                     if let Some(res_offset) = self.get_offset(res) {
-                        code.push_str(&format!("    str x0, [x29, #-{}]\n", res_offset));
+                        code.push_str(&self.generate_store("x0", res_offset));
                     }
                 }
 
@@ -348,7 +405,7 @@ impl ARM64Generator {
                 match condition {
                     IRValue::Var(name) => {
                         if let Some(offset) = self.get_offset(name) {
-                            code.push_str(&format!("    ldr x0, [x29, #-{}]\n", offset));
+                            code.push_str(&self.generate_load(offset, "x0"));
                             code.push_str("    cmp x0, #0\n");
                         }
                     }
@@ -362,20 +419,28 @@ impl ARM64Generator {
             }
 
             IRInstruction::Ret { value, .. } => {
+                let mut code = String::new();
+
                 if let Some(v) = value {
                     match v {
-                        IRValue::Const(n) => format!("    mov x0, #{}\n", n),
+                        IRValue::Const(n) => code.push_str(&format!("    mov x0, #{}\n", n)),
                         IRValue::Var(name) => {
                             if let Some(offset) = self.get_offset(name) {
-                                format!("    ldr x0, [x29, #-{}]\n", offset)
+                                code.push_str(&self.generate_load(offset, "x0"));
                             } else {
-                                "    mov x0, #0\n".to_string()
+                                code.push_str("    mov x0, #0\n");
                             }
                         }
                     }
                 } else {
-                    "    mov x0, #0\n".to_string()
+                    code.push_str("    mov x0, #0\n");
                 }
+
+                code.push_str("    mov sp, x29\n");
+                code.push_str("    ldp x29, x30, [sp], #16\n");
+                code.push_str("    ret\n");
+
+                code
             }
         }
     }
