@@ -1,4 +1,4 @@
-//! LightLang - A modern systems programming language
+//! Lumi - A modern systems programming language
 
 pub mod lexer;
 pub mod parser;
@@ -6,6 +6,7 @@ pub mod semantic;
 pub mod ir;
 pub mod codegen;
 pub mod compiler;
+pub mod stdlib;
 
 pub use lexer::{Lexer, Token};
 pub use parser::Parser;

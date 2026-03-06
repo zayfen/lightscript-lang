@@ -1,9 +1,9 @@
 [package]
-name = "lightlang"
+name = "lumi"
 version = "0.1.0"
 edition = "2021"
 authors = ["Zayfen <zayfen@example.com>"]
-description = "A modern systems programming language that compiles to native ELF executables"
+description = "Lumi - A modern systems programming language that compiles to native ELF executables"
 license = "MIT OR Apache-2.0"
 
 [dependencies]
@@ -52,9 +52,9 @@ opt-level = 3
 lto = true
 
 [lib]
-name = "lightlang"
+name = "lumi"
 path = "src/lib.rs"
 
 [[bin]]
-name = "llc"
+name = "lumi"
 path = "src/main.rs"
