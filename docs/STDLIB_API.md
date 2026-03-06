@@ -1,4 +1,4 @@
-# Lumi 标准库 API 文档
+# Ziv 标准库 API 文档
 
 **版本**: 0.1.0  
 **最后更新**: 2026-03-07
@@ -7,7 +7,7 @@
 
 ## 📚 概述
 
-Lumi 标准库提供了常用的内置函数，包括 IO 操作、数学计算、字符串处理和数组操作。
+Ziv 标准库提供了常用的内置函数，包括 IO 操作、数学计算、字符串处理和数组操作。
 
 ---
 
@@ -35,7 +35,7 @@ stdlib/
 **返回值**: 无
 
 **示例**:
-```lumi
+```ziv
 print("Hello");
 print(" ");
 print("World");
@@ -54,8 +54,8 @@ print("World");
 **返回值**: 无
 
 **示例**:
-```lumi
-println("Hello, Lumi!");
+```ziv
+println("Hello, Ziv!");
 println(42);
 ```
 
@@ -70,7 +70,7 @@ println(42);
 **返回值**: 读取的字符串
 
 **示例**:
-```lumi
+```ziv
 print("请输入姓名: ");
 let name = read();
 println(name);
@@ -112,7 +112,7 @@ println(name);
 **返回值**: 绝对值
 
 **示例**:
-```lumi
+```ziv
 let result = abs(-10);  // 10
 ```
 
@@ -129,7 +129,7 @@ let result = abs(-10);  // 10
 **返回值**: 较小的数字
 
 **示例**:
-```lumi
+```ziv
 let result = min(5, 10);  // 5
 ```
 
@@ -146,7 +146,7 @@ let result = min(5, 10);  // 5
 **返回值**: 较大的数字
 
 **示例**:
-```lumi
+```ziv
 let result = max(5, 10);  // 10
 ```
 
@@ -162,7 +162,7 @@ let result = max(5, 10);  // 10
 **返回值**: 平方根（浮点数）
 
 **示例**:
-```lumi
+```ziv
 let result = sqrt(16);  // 4.0
 ```
 
@@ -179,7 +179,7 @@ let result = sqrt(16);  // 4.0
 **返回值**: 幂运算结果（浮点数）
 
 **示例**:
-```lumi
+```ziv
 let result = pow(2, 3);  // 8.0
 ```
 
@@ -195,7 +195,7 @@ let result = pow(2, 3);  // 8.0
 **返回值**: 整数
 
 **示例**:
-```lumi
+```ziv
 let result = floor(3.7);  // 3
 ```
 
@@ -211,7 +211,7 @@ let result = floor(3.7);  // 3
 **返回值**: 整数
 
 **示例**:
-```lumi
+```ziv
 let result = ceil(3.2);  // 4
 ```
 
@@ -227,7 +227,7 @@ let result = ceil(3.2);  // 4
 **返回值**: 整数
 
 **示例**:
-```lumi
+```ziv
 let result = round(3.5);  // 4
 ```
 
@@ -245,7 +245,7 @@ let result = round(3.5);  // 4
 **返回值**: 长度
 
 **示例**:
-```lumi
+```ziv
 let len = strlen("Hello");  // 5
 ```
 
@@ -262,7 +262,7 @@ let len = strlen("Hello");  // 5
 **返回值**: 连接后的字符串
 
 **示例**:
-```lumi
+```ziv
 let result = concat("Hello", "World");  // "HelloWorld"
 ```
 
@@ -280,7 +280,7 @@ let result = concat("Hello", "World");  // "HelloWorld"
 **返回值**: 子字符串
 
 **示例**:
-```lumi
+```ziv
 let result = substr("Hello, World!", 0, 5);  // "Hello"
 ```
 
@@ -297,7 +297,7 @@ let result = substr("Hello, World!", 0, 5);  // "Hello"
 **返回值**: 字符
 
 **示例**:
-```lumi
+```ziv
 let ch = char_at("Hello", 0);  // 'H'
 ```
 
@@ -313,7 +313,7 @@ let ch = char_at("Hello", 0);  // 'H'
 **返回值**: 大写字符串
 
 **示例**:
-```lumi
+```ziv
 let result = to_upper("hello");  // "HELLO"
 ```
 
@@ -329,7 +329,7 @@ let result = to_upper("hello");  // "HELLO"
 **返回值**: 小写字符串
 
 **示例**:
-```lumi
+```ziv
 let result = to_lower("HELLO");  // "hello"
 ```
 
@@ -345,7 +345,7 @@ let result = to_lower("HELLO");  // "hello"
 **返回值**: 去除空白后的字符串
 
 **示例**:
-```lumi
+```ziv
 let result = trim("  Hello  ");  // "Hello"
 ```
 
@@ -362,7 +362,7 @@ let result = trim("  Hello  ");  // "Hello"
 **返回值**: 布尔值
 
 **示例**:
-```lumi
+```ziv
 let found = contains("Hello, World!", "World");  // true
 ```
 
@@ -381,7 +381,7 @@ let found = contains("Hello, World!", "World");  // true
 **返回值**: 新数组
 
 **示例**:
-```lumi
+```ziv
 let arr = [1, 2, 3];
 let newArr = push(arr, 4);  // [1, 2, 3, 4]
 ```
@@ -398,7 +398,7 @@ let newArr = push(arr, 4);  // [1, 2, 3, 4]
 **返回值**: 移除的元素
 
 **示例**:
-```lumi
+```ziv
 let arr = [1, 2, 3];
 let last = pop(arr);  // 3
 ```
@@ -415,7 +415,7 @@ let last = pop(arr);  // 3
 **返回值**: 长度
 
 **示例**:
-```lumi
+```ziv
 let arr = [1, 2, 3, 4, 5];
 let len = arrlen(arr);  // 5
 ```
@@ -433,7 +433,7 @@ let len = arrlen(arr);  // 5
 **返回值**: 元素
 
 **示例**:
-```lumi
+```ziv
 let arr = [10, 20, 30];
 let elem = get(arr, 1);  // 20
 ```
@@ -452,7 +452,7 @@ let elem = get(arr, 1);  // 20
 **返回值**: 新数组
 
 **示例**:
-```lumi
+```ziv
 let arr = [1, 2, 3];
 let newArr = set(arr, 1, 20);  // [1, 20, 3]
 ```
@@ -469,7 +469,7 @@ let newArr = set(arr, 1, 20);  // [1, 20, 3]
 **返回值**: 第一个元素
 
 **示例**:
-```lumi
+```ziv
 let arr = [1, 2, 3];
 let first = first(arr);  // 1
 ```
@@ -486,7 +486,7 @@ let first = first(arr);  // 1
 **返回值**: 最后一个元素
 
 **示例**:
-```lumi
+```ziv
 let arr = [1, 2, 3];
 let last = last(arr);  // 3
 ```
@@ -503,7 +503,7 @@ let last = last(arr);  // 3
 **返回值**: 反转后的数组
 
 **示例**:
-```lumi
+```ziv
 let arr = [1, 2, 3];
 let reversed = reverse(arr);  // [3, 2, 1]
 ```
@@ -524,7 +524,7 @@ let reversed = reverse(arr);  // [3, 2, 1]
 
 ## 🔗 相关链接
 
-- [Lumi 语言介绍](../README.md)
+- [Ziv 语言介绍](../README.md)
 - [示例代码](../examples/stdlib/)
 - [开发文档](../CLAUDE.md)
 

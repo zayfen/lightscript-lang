@@ -10,17 +10,17 @@
 
 ### 1. 重命名编程语言（100%）
 
-**新名字**: **Lumi** 
+**新名字**: **Ziv** 
 - 含义：光芒、明亮（拉丁语 "light"）
 - 字符数：4 个字符 ✅
 - 简洁优雅 ✅
 
 **修改内容**:
-- ✅ Cargo.toml 项目名: `lightlang` → `lumi`
-- ✅ 库名: `lumi`
-- ✅ 二进制名: `llc` → `lumi`
+- ✅ Cargo.toml 项目名: `lightlang` → `ziv`
+- ✅ 库名: `ziv`
+- ✅ 二进制名: `llc` → `ziv`
 
-**Git Commit**: `a369545` - "Rename LightLang to Lumi and implement standard library structure"
+**Git Commit**: `a369545` - "Rename LightLang to Ziv and implement standard library structure"
 
 ---
 
@@ -56,7 +56,7 @@
 
 | 标准 | 状态 | 备注 |
 |------|------|------|
-| ✅ 名字简洁优雅（≤4字符） | 完成 | "Lumi" |
+| ✅ 名字简洁优雅（≤4字符） | 完成 | "Ziv" |
 | ✅ 系统性重命名 | 完成 | 所有引用已更新 |
 | ✅ 标准库实现 | 完成 | 4个类别，28个函数 |
 | ✅ 测试覆盖率 ≥80% | 预估完成 | 16个测试函数 |

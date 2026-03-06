@@ -1,4 +1,4 @@
-//! Lumi - A modern systems programming language
+//! Ziv - A modern systems programming language
 
 pub mod lexer;
 pub mod parser;

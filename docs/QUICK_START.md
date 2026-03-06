@@ -1,6 +1,6 @@
-# 🚀 Lumi 快速开始指南
+# 🚀 Ziv 快速开始指南
 
-欢迎使用 Lumi 编程语言！本指南将帮助你在 5 分钟内上手。
+欢迎使用 Ziv 编程语言！本指南将帮助你在 5 分钟内上手。
 
 ---
 
@@ -10,14 +10,14 @@
 
 ```bash
 # 1. 克隆仓库
-git clone https://github.com/zayfen/lumi.git
-cd lumi
+git clone https://github.com/zayfen/ziv.git
+cd ziv
 
 # 2. 构建（需要 Rust 1.80+）
 cargo build --release
 
 # 3. 编译器位于
-./target/release/lumi --version
+./target/release/ziv --version
 ```
 
 ### 方式 2: 下载预编译版本
@@ -30,23 +30,23 @@ cargo build --release
 
 ### 1. 创建文件
 
-创建 `hello.lumi`:
+创建 `hello.ziv`:
 
-```lumi
-println("Hello, Lumi! 🌟");
+```ziv
+println("Hello, Ziv! 🌟");
 ```
 
 ### 2. 编译
 
 ```bash
-./target/release/lumi hello.lumi -o hello
+./target/release/ziv hello.ziv -o hello
 ```
 
 ### 3. 运行
 
 ```bash
 ./hello
-# 输出: Hello, Lumi! 🌟
+# 输出: Hello, Ziv! 🌟
 ```
 
 ---
@@ -55,7 +55,7 @@ println("Hello, Lumi! 🌟");
 
 ### 变量声明
 
-```lumi
+```ziv
 // 整数
 let age = 25;
 
@@ -63,7 +63,7 @@ let age = 25;
 let pi = 3.14159;
 
 // 字符串
-let name = "Lumi";
+let name = "Ziv";
 
 // 布尔值
 let isAwesome = true;
@@ -71,7 +71,7 @@ let isAwesome = true;
 
 ### 基本运算
 
-```lumi
+```ziv
 let a = 10;
 let b = 20;
 
@@ -89,7 +89,7 @@ let isLess = a < b;      // true
 
 ### 控制流
 
-```lumi
+```ziv
 // If-Else
 let x = 10;
 if (x > 5) {
@@ -108,7 +108,7 @@ while (i < 5) {
 
 ### 函数定义
 
-```lumi
+```ziv
 // 简单函数
 function greet(name) {
     println("Hello, " + name);
@@ -133,7 +133,7 @@ let result = factorial(5);  // 120
 
 ### IO 函数
 
-```lumi
+```ziv
 // 打印
 print("不换行: ");
 println("这会换行");
@@ -146,7 +146,7 @@ println("你好, " + name);
 
 ### 数学函数
 
-```lumi
+```ziv
 // 基本运算
 println(abs(-10));      // 10
 println(min(5, 10));    // 5
@@ -164,8 +164,8 @@ println(round(3.5));    // 4
 
 ### 字符串函数
 
-```lumi
-let s = "Hello, Lumi!";
+```ziv
+let s = "Hello, Ziv!";
 
 // 长度
 println(strlen(s));           // 13
@@ -177,21 +177,21 @@ let greeting = concat("Hello, ", "World");
 let sub = substr(s, 0, 5);    // "Hello"
 
 // 大小写转换
-println(to_upper(s));         // "HELLO, LUMI!"
-println(to_lower(s));         // "hello, lumi!"
+println(to_upper(s));         // "HELLO, ZIV!"
+println(to_lower(s));         // "hello, ziv!"
 
 // 去除空白
 let trimmed = trim("  Hello  ");
 
 // 包含检查
-if (contains(s, "Lumi")) {
-    println("找到 Lumi!");
+if (contains(s, "Ziv")) {
+    println("找到 Ziv!");
 }
 ```
 
 ### 数组函数
 
-```lumi
+```ziv
 let arr = [1, 2, 3, 4, 5];
 
 // 长度
@@ -214,7 +214,7 @@ let reversed = reverse(arr);  // [5, 4, 3, 2, 1]
 
 ### Fibonacci 数列
 
-```lumi
+```ziv
 function fib(n) {
     if (n <= 1) {
         return n;
@@ -232,7 +232,7 @@ while (i < 10) {
 
 ### 计算器
 
-```lumi
+```ziv
 function calculate(a, op, b) {
     if (op == "+") {
         return a + b;
@@ -256,13 +256,13 @@ println(result);  // 30
 
 ```bash
 # 基本用法
-lumi source.lumi -o output
+ziv source.ziv -o output
 
 # 保留汇编文件
-lumi source.lumi -o output --keep-asm
+ziv source.ziv -o output --keep-asm
 
 # 查看帮助
-lumi --help
+ziv --help
 ```
 
 ---
@@ -270,7 +270,7 @@ lumi --help
 ## 📂 项目结构
 
 ```
-lumi/
+ziv/
 ├── src/
 │   ├── lexer/      - 词法分析
 │   ├── parser/     - 语法分析
@@ -291,7 +291,7 @@ lumi/
 
 ### Q: 编译错误怎么办？
 
-A: 检查语法错误，Lumi 会给出详细的错误信息和位置。
+A: 检查语法错误，Ziv 会给出详细的错误信息和位置。
 
 ### Q: 如何调试？
 

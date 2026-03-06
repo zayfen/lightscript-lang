@@ -1,4 +1,4 @@
-//! Lumi compiler CLI
+//! Ziv compiler CLI
 
 use std::env;
 use std::fs;
@@ -8,8 +8,8 @@ fn main() {
     let args: Vec<String> = env::args().collect();
     
     if args.len() < 2 {
-        eprintln!("Lumi Compiler v0.1.0");
-        eprintln!("Usage: {} <source.lumi>", args[0]);
+        eprintln!("Ziv Compiler v0.1.0");
+        eprintln!("Usage: {} <source.ziv>", args[0]);
         eprintln!("  Options:");
         eprintln!("    -o <output>    Output executable name");
         eprintln!("    --keep-asm     Keep assembly files");
@@ -61,7 +61,7 @@ fn main() {
     println!();
     
     // Compile
-    let mut compiler = lumi::Compiler::new()
+    let mut compiler = ziv::Compiler::new()
         .output(&output_name)
         .keep_asm(keep_asm);
     

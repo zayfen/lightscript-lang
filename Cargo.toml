@@ -1,9 +1,9 @@
 [package]
-name = "lumi"
+name = "ziv"
 version = "0.1.0"
 edition = "2021"
 authors = ["Zayfen <zayfen@example.com>"]
-description = "Lumi - A modern systems programming language that compiles to native ELF executables"
+description = "Ziv - A modern systems programming language that compiles to native ELF executables"
 license = "MIT OR Apache-2.0"
 
 [dependencies]
@@ -52,9 +52,9 @@ opt-level = 3
 lto = true
 
 [lib]
-name = "lumi"
+name = "ziv"
 path = "src/lib.rs"
 
 [[bin]]
-name = "lumi"
+name = "ziv"
 path = "src/main.rs"

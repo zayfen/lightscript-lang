@@ -1,4 +1,4 @@
-# Lumi 🌟
+# Ziv 🌟
 
 **A modern systems programming language that compiles to native ELF executables**
 
@@ -10,7 +10,7 @@
 
 ## 📖 简介
 
-**Lumi**（拉丁语 "光"）是一个现代化的系统编程语言，设计目标是：
+**Ziv**（拉丁语 "光"）是一个现代化的系统编程语言，设计目标是：
 
 - ✨ **简洁优雅** - 类 JavaScript 语法，易于学习
 - 🚀 **原生性能** - 直接编译为 x86-64 ELF 可执行文件
@@ -58,29 +58,29 @@
 
 ```bash
 # 克隆仓库
-git clone https://github.com/zayfen/lumi.git
-cd lumi
+git clone https://github.com/zayfen/ziv.git
+cd ziv
 
 # 构建
 cargo build --release
 
-# 编译器位于 target/release/lumi
+# 编译器位于 target/release/ziv
 ```
 
 ### Hello World
 
-创建 `hello.lumi` 文件：
+创建 `hello.ziv` 文件：
 
-```lumi
-println("Hello, Lumi! 🌟");
+```ziv
+println("Hello, Ziv! 🌟");
 ```
 
 编译并运行：
 
 ```bash
-./target/release/lumi hello.lumi -o hello
+./target/release/ziv hello.ziv -o hello
 ./hello
-# 输出: Hello, Lumi! 🌟
+# 输出: Hello, Ziv! 🌟
 ```
 
 ---
@@ -89,7 +89,7 @@ println("Hello, Lumi! 🌟");
 
 ### 1. 基本运算
 
-```lumi
+```ziv
 let a = 10;
 let b = 20;
 let c = a + b;
@@ -98,7 +98,7 @@ println(c);  // 输出: 30
 
 ### 2. Fibonacci 数列
 
-```lumi
+```ziv
 function fib(n) {
     if (n <= 1) {
         return n;
@@ -112,7 +112,7 @@ println(result);  // 输出: 55
 
 ### 3. 标准库使用
 
-```lumi
+```ziv
 // 字符串操作
 let s = "Hello, World!";
 println(strlen(s));           // 13
@@ -145,7 +145,7 @@ println(last(arr));           // 5
 ## 🛠️ 编译器选项
 
 ```bash
-lumi <source.lumi> [options]
+ziv <source.ziv> [options]
 
 选项:
   -o <output>      输出文件名（默认: a.out）
@@ -215,9 +215,9 @@ cargo tarpaulin --out Html
 ## 📮 联系方式
 
 - **作者**: Zayfen
-- **GitHub**: https://github.com/zayfen/lumi
-- **Issues**: https://github.com/zayfen/lumi/issues
+- **GitHub**: https://github.com/zayfen/ziv
+- **Issues**: https://github.com/zayfen/ziv/issues
 
 ---
 
-**Lumi** - 让编程更简单、更高效！ 🌟
+**Ziv** - 让编程更简单、更高效！ 🌟
