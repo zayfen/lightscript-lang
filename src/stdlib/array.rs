@@ -128,6 +128,11 @@ impl Stdlib {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn assert_param(func: &BuiltinFunction, idx: usize, name: &str, ty: &str) {
+        assert_eq!(func.params[idx].name, name);
+        assert_eq!(func.params[idx].ty, ty);
+    }
     
     #[test]
     fn test_array_functions_registered() {
@@ -156,5 +161,54 @@ mod tests {
         let stdlib = Stdlib::new();
         let func = stdlib.get("arrlen").unwrap();
         assert_eq!(func.params.len(), 1);
+    }
+
+    #[test]
+    fn test_array_function_signatures_and_return_types() {
+        let stdlib = Stdlib::new();
+
+        let push = stdlib.get("push").unwrap();
+        assert_eq!(push.return_type.as_deref(), Some("array"));
+        assert_eq!(push.params.len(), 2);
+        assert_param(push, 0, "arr", "array");
+        assert_param(push, 1, "element", "any");
+
+        let pop = stdlib.get("pop").unwrap();
+        assert_eq!(pop.return_type.as_deref(), Some("any"));
+        assert_eq!(pop.params.len(), 1);
+        assert_param(pop, 0, "arr", "array");
+
+        let arrlen = stdlib.get("arrlen").unwrap();
+        assert_eq!(arrlen.return_type.as_deref(), Some("i64"));
+        assert_eq!(arrlen.params.len(), 1);
+        assert_param(arrlen, 0, "arr", "array");
+
+        let get = stdlib.get("get").unwrap();
+        assert_eq!(get.return_type.as_deref(), Some("any"));
+        assert_eq!(get.params.len(), 2);
+        assert_param(get, 0, "arr", "array");
+        assert_param(get, 1, "index", "i64");
+
+        let set = stdlib.get("set").unwrap();
+        assert_eq!(set.return_type.as_deref(), Some("array"));
+        assert_eq!(set.params.len(), 3);
+        assert_param(set, 0, "arr", "array");
+        assert_param(set, 1, "index", "i64");
+        assert_param(set, 2, "value", "any");
+
+        let first = stdlib.get("first").unwrap();
+        assert_eq!(first.return_type.as_deref(), Some("any"));
+        assert_eq!(first.params.len(), 1);
+        assert_param(first, 0, "arr", "array");
+
+        let last = stdlib.get("last").unwrap();
+        assert_eq!(last.return_type.as_deref(), Some("any"));
+        assert_eq!(last.params.len(), 1);
+        assert_param(last, 0, "arr", "array");
+
+        let reverse = stdlib.get("reverse").unwrap();
+        assert_eq!(reverse.return_type.as_deref(), Some("array"));
+        assert_eq!(reverse.params.len(), 1);
+        assert_param(reverse, 0, "arr", "array");
     }
 }

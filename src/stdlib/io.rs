@@ -67,6 +67,11 @@ impl Stdlib {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn assert_param(func: &BuiltinFunction, idx: usize, name: &str, ty: &str) {
+        assert_eq!(func.params[idx].name, name);
+        assert_eq!(func.params[idx].ty, ty);
+    }
     
     #[test]
     fn test_io_functions_registered() {
@@ -85,5 +90,38 @@ mod tests {
         assert_eq!(func.name, "print");
         assert_eq!(func.category, "io");
         assert_eq!(func.params.len(), 1);
+    }
+
+    #[test]
+    fn test_io_function_signatures_and_metadata() {
+        let stdlib = Stdlib::new();
+
+        let print = stdlib.get("print").unwrap();
+        assert_eq!(print.return_type, None);
+        assert_eq!(print.params.len(), 1);
+        assert_param(print, 0, "value", "any");
+        assert!(print.description.contains("stdout"));
+
+        let println = stdlib.get("println").unwrap();
+        assert_eq!(println.return_type, None);
+        assert_eq!(println.params.len(), 1);
+        assert_param(println, 0, "value", "any");
+        assert!(println.description.contains("newline"));
+
+        let read = stdlib.get("read").unwrap();
+        assert_eq!(read.return_type.as_deref(), Some("string"));
+        assert!(read.params.is_empty());
+
+        let eprint = stdlib.get("eprint").unwrap();
+        assert_eq!(eprint.return_type, None);
+        assert_eq!(eprint.params.len(), 1);
+        assert_param(eprint, 0, "value", "any");
+        assert!(eprint.description.contains("stderr"));
+
+        let eprintln = stdlib.get("eprintln").unwrap();
+        assert_eq!(eprintln.return_type, None);
+        assert_eq!(eprintln.params.len(), 1);
+        assert_param(eprintln, 0, "value", "any");
+        assert!(eprintln.description.contains("stderr"));
     }
 }

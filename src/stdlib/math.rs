@@ -124,6 +124,11 @@ impl Stdlib {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn assert_param(func: &BuiltinFunction, idx: usize, name: &str, ty: &str) {
+        assert_eq!(func.params[idx].name, name);
+        assert_eq!(func.params[idx].ty, ty);
+    }
     
     #[test]
     fn test_math_functions_registered() {
@@ -155,5 +160,53 @@ mod tests {
         
         let max_func = stdlib.get("max").unwrap();
         assert_eq!(max_func.params.len(), 2);
+    }
+
+    #[test]
+    fn test_math_function_signatures_and_return_types() {
+        let stdlib = Stdlib::new();
+
+        let abs = stdlib.get("abs").unwrap();
+        assert_eq!(abs.return_type.as_deref(), Some("number"));
+        assert_eq!(abs.params.len(), 1);
+        assert_param(abs, 0, "x", "number");
+
+        let min = stdlib.get("min").unwrap();
+        assert_eq!(min.return_type.as_deref(), Some("number"));
+        assert_eq!(min.params.len(), 2);
+        assert_param(min, 0, "a", "number");
+        assert_param(min, 1, "b", "number");
+
+        let max = stdlib.get("max").unwrap();
+        assert_eq!(max.return_type.as_deref(), Some("number"));
+        assert_eq!(max.params.len(), 2);
+        assert_param(max, 0, "a", "number");
+        assert_param(max, 1, "b", "number");
+
+        let sqrt = stdlib.get("sqrt").unwrap();
+        assert_eq!(sqrt.return_type.as_deref(), Some("f64"));
+        assert_eq!(sqrt.params.len(), 1);
+        assert_param(sqrt, 0, "x", "number");
+
+        let pow = stdlib.get("pow").unwrap();
+        assert_eq!(pow.return_type.as_deref(), Some("f64"));
+        assert_eq!(pow.params.len(), 2);
+        assert_param(pow, 0, "base", "number");
+        assert_param(pow, 1, "exp", "number");
+
+        let floor = stdlib.get("floor").unwrap();
+        assert_eq!(floor.return_type.as_deref(), Some("i64"));
+        assert_eq!(floor.params.len(), 1);
+        assert_param(floor, 0, "x", "number");
+
+        let ceil = stdlib.get("ceil").unwrap();
+        assert_eq!(ceil.return_type.as_deref(), Some("i64"));
+        assert_eq!(ceil.params.len(), 1);
+        assert_param(ceil, 0, "x", "number");
+
+        let round = stdlib.get("round").unwrap();
+        assert_eq!(round.return_type.as_deref(), Some("i64"));
+        assert_eq!(round.params.len(), 1);
+        assert_param(round, 0, "x", "number");
     }
 }

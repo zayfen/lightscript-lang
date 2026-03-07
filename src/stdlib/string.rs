@@ -134,6 +134,11 @@ impl Stdlib {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn assert_param(func: &BuiltinFunction, idx: usize, name: &str, ty: &str) {
+        assert_eq!(func.params[idx].name, name);
+        assert_eq!(func.params[idx].ty, ty);
+    }
     
     #[test]
     fn test_string_functions_registered() {
@@ -162,5 +167,55 @@ mod tests {
         let stdlib = Stdlib::new();
         let func = stdlib.get("concat").unwrap();
         assert_eq!(func.params.len(), 2);
+    }
+
+    #[test]
+    fn test_string_function_signatures_and_return_types() {
+        let stdlib = Stdlib::new();
+
+        let strlen = stdlib.get("strlen").unwrap();
+        assert_eq!(strlen.return_type.as_deref(), Some("i64"));
+        assert_eq!(strlen.params.len(), 1);
+        assert_param(strlen, 0, "s", "string");
+
+        let concat = stdlib.get("concat").unwrap();
+        assert_eq!(concat.return_type.as_deref(), Some("string"));
+        assert_eq!(concat.params.len(), 2);
+        assert_param(concat, 0, "a", "string");
+        assert_param(concat, 1, "b", "string");
+
+        let substr = stdlib.get("substr").unwrap();
+        assert_eq!(substr.return_type.as_deref(), Some("string"));
+        assert_eq!(substr.params.len(), 3);
+        assert_param(substr, 0, "s", "string");
+        assert_param(substr, 1, "start", "i64");
+        assert_param(substr, 2, "length", "i64");
+
+        let char_at = stdlib.get("char_at").unwrap();
+        assert_eq!(char_at.return_type.as_deref(), Some("char"));
+        assert_eq!(char_at.params.len(), 2);
+        assert_param(char_at, 0, "s", "string");
+        assert_param(char_at, 1, "index", "i64");
+
+        let to_upper = stdlib.get("to_upper").unwrap();
+        assert_eq!(to_upper.return_type.as_deref(), Some("string"));
+        assert_eq!(to_upper.params.len(), 1);
+        assert_param(to_upper, 0, "s", "string");
+
+        let to_lower = stdlib.get("to_lower").unwrap();
+        assert_eq!(to_lower.return_type.as_deref(), Some("string"));
+        assert_eq!(to_lower.params.len(), 1);
+        assert_param(to_lower, 0, "s", "string");
+
+        let trim = stdlib.get("trim").unwrap();
+        assert_eq!(trim.return_type.as_deref(), Some("string"));
+        assert_eq!(trim.params.len(), 1);
+        assert_param(trim, 0, "s", "string");
+
+        let contains = stdlib.get("contains").unwrap();
+        assert_eq!(contains.return_type.as_deref(), Some("bool"));
+        assert_eq!(contains.params.len(), 2);
+        assert_param(contains, 0, "s", "string");
+        assert_param(contains, 1, "substr", "string");
     }
 }

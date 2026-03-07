@@ -90,6 +90,7 @@ impl Default for Stdlib {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::collections::HashSet;
     
     #[test]
     fn test_stdlib_creation() {
@@ -111,5 +112,42 @@ mod tests {
         let stdlib = Stdlib::new();
         let io_funcs = stdlib.functions_by_category("io");
         assert!(!io_funcs.is_empty());
+    }
+
+    #[test]
+    fn test_all_functions_and_default() {
+        let stdlib = Stdlib::default();
+        let all = stdlib.all_functions();
+        assert!(!all.is_empty());
+    }
+
+    #[test]
+    fn test_registry_counts_and_categories() {
+        let stdlib = Stdlib::new();
+        assert_eq!(stdlib.all_functions().len(), 29);
+        assert_eq!(stdlib.functions_by_category("io").len(), 5);
+        assert_eq!(stdlib.functions_by_category("math").len(), 8);
+        assert_eq!(stdlib.functions_by_category("string").len(), 8);
+        assert_eq!(stdlib.functions_by_category("array").len(), 8);
+    }
+
+    #[test]
+    fn test_unknown_lookup_and_category_are_empty() {
+        let stdlib = Stdlib::new();
+        assert!(!stdlib.is_builtin("__missing_builtin__"));
+        assert!(stdlib.get("__missing_builtin__").is_none());
+        assert!(stdlib.functions_by_category("__missing_category__").is_empty());
+    }
+
+    #[test]
+    fn test_builtin_metadata_is_complete_and_names_unique() {
+        let stdlib = Stdlib::new();
+        let mut names = HashSet::new();
+
+        for func in stdlib.all_functions() {
+            assert!(names.insert(func.name.clone()));
+            assert!(!func.category.trim().is_empty());
+            assert!(!func.description.trim().is_empty());
+        }
     }
 }
