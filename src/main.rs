@@ -6,7 +6,7 @@ use std::process;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
-    
+
     if args.len() < 2 {
         eprintln!("Ziv Compiler v0.1.0");
         eprintln!("Usage: {} <source.ziv>", args[0]);
@@ -15,11 +15,11 @@ fn main() {
         eprintln!("    --keep-asm     Keep assembly files");
         process::exit(1);
     }
-    
+
     let mut source_file = None;
     let mut output_name = "a.out".to_string();
     let mut keep_asm = false;
-    
+
     let mut i = 1;
     while i < args.len() {
         match args[i].as_str() {
@@ -31,17 +31,17 @@ fn main() {
                     eprintln!("Error: -o requires an argument");
                     process::exit(1);
                 }
-            },
+            }
             "--keep-asm" => {
                 keep_asm = true;
-            },
+            }
             file => {
                 source_file = Some(file.to_string());
             }
         }
         i += 1;
     }
-    
+
     let source_file = match source_file {
         Some(f) => f,
         None => {
@@ -49,22 +49,22 @@ fn main() {
             process::exit(1);
         }
     };
-    
+
     // Read source file
-    let source = fs::read_to_string(&source_file)
-        .unwrap_or_else(|e| {
-            eprintln!("Error reading file: {}", e);
-            process::exit(1);
-        });
-    
+    let source = fs::read_to_string(&source_file).unwrap_or_else(|e| {
+        eprintln!("Error reading file: {}", e);
+        process::exit(1);
+    });
+
     println!("Compiling: {}", source_file);
     println!();
-    
+
     // Compile
     let mut compiler = ziv::Compiler::new()
         .output(&output_name)
+        .source_path(&source_file)
         .keep_asm(keep_asm);
-    
+
     if let Err(e) = compiler.compile(&source) {
         eprintln!("Compilation error: {}", e);
         process::exit(1);

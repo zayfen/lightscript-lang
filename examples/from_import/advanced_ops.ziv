@@ -1,0 +1,14 @@
+// Nested import module
+from { "./math_ops.ziv" } import { add, mul };
+
+function square_plus(x, y) {
+    return add(mul(x, x), y);
+}
+
+function choose(flag, a, b) {
+    if (flag == 1) {
+        return a;
+    } else {
+        return b;
+    }
+}

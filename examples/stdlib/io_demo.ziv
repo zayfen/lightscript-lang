@@ -1,0 +1,12 @@
+// IO builtins demo
+println("io demo");
+print(1);
+println(2);
+eprint("err");
+eprintln(" line");
+println(strlen(read()));
+println(strlen(input("prompt> ")));
+println(strlen(readAll()));
+printf("fmt:%lld\n", 10);
+println(flush());
+println("io done");

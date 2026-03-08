@@ -1,0 +1,22 @@
+// Filesystem builtins demo
+println("filesystem demo");
+println(writeFile("fs_demo_a.txt", "abc"));
+println(exists("fs_demo_a.txt"));
+println(fileSize("fs_demo_a.txt"));
+println(appendFile("fs_demo_a.txt", "de"));
+println(fileSize("fs_demo_a.txt"));
+println(strlen(readFile("fs_demo_a.txt", "utf-8")));
+println(copyFile("fs_demo_a.txt", "fs_demo_b.txt"));
+println(fileSize("fs_demo_b.txt"));
+println(rename("fs_demo_b.txt", "fs_demo_c.txt"));
+println(exists("fs_demo_c.txt"));
+println(removeFile("fs_demo_c.txt"));
+println(exists("fs_demo_c.txt"));
+println(mkdir("fs_demo_dir"));
+println(vectorLen(readDir("fs_demo_dir")));
+println(exists("fs_demo_dir"));
+println(removeDir("fs_demo_dir"));
+println(exists("fs_demo_dir"));
+println(strlen(cwd()) >= 1);
+println(removeFile("fs_demo_a.txt"));
+println("filesystem done");

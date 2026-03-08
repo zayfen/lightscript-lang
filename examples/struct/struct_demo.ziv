@@ -1,0 +1,17 @@
+// Struct syntax demo
+struct Person {
+    age: int;
+    score: int;
+}
+
+let person: Person = Person.(
+    age = 18,
+    score = 90
+);
+
+println(person.age);
+
+person += Person.(age = 20);
+
+println(person.age);
+println(person.score);

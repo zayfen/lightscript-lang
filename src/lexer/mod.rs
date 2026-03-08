@@ -8,12 +8,13 @@ pub enum Token {
     String(String),
     Boolean(bool),
     Char(char),
-    
+
     // Identifiers and Keywords
     Identifier(String),
     Let,
     Const,
     Function,
+    Struct,
     Class,
     If,
     Else,
@@ -26,9 +27,10 @@ pub enum Token {
     False,
     Null,
     Undefined,
-    
+
     // Operators
     Plus,
+    PlusEqual,
     Minus,
     Star,
     Slash,
@@ -43,7 +45,7 @@ pub enum Token {
     GreaterEqual,
     And,
     Or,
-    
+
     // Delimiters
     LeftParen,
     RightParen,
@@ -54,9 +56,10 @@ pub enum Token {
     Comma,
     Semicolon,
     Colon,
+    Dot,
     Arrow,
     FatArrow,
-    
+
     // Special
     EOF,
     Unknown(char),
@@ -89,13 +92,13 @@ impl Lexer {
             position: 0,
         }
     }
-    
+
     pub fn tokenize(&mut self) -> Result<Vec<Token>, String> {
         let mut tokens = Vec::new();
-        
+
         while self.position < self.input.len() {
             let ch = self.current_char();
-            
+
             match ch {
                 ' ' | '\t' | '\n' | '\r' => {
                     self.advance();
@@ -109,8 +112,16 @@ impl Lexer {
                 '"' | '\'' => {
                     tokens.push(self.read_string()?);
                 }
-                '+' => { tokens.push(Token::Plus); self.advance(); }
-                '-' => { 
+                '+' => {
+                    self.advance();
+                    if self.current_char() == '=' {
+                        tokens.push(Token::PlusEqual);
+                        self.advance();
+                    } else {
+                        tokens.push(Token::Plus);
+                    }
+                }
+                '-' => {
                     self.advance();
                     if self.current_char() == '>' {
                         tokens.push(Token::Arrow);
@@ -119,9 +130,22 @@ impl Lexer {
                         tokens.push(Token::Minus);
                     }
                 }
-                '*' => { tokens.push(Token::Star); self.advance(); }
-                '/' => { tokens.push(Token::Slash); self.advance(); }
-                '%' => { tokens.push(Token::Percent); self.advance(); }
+                '*' => {
+                    tokens.push(Token::Star);
+                    self.advance();
+                }
+                '/' => {
+                    if self.peek_char() == '/' {
+                        self.skip_line_comment();
+                    } else {
+                        tokens.push(Token::Slash);
+                        self.advance();
+                    }
+                }
+                '%' => {
+                    tokens.push(Token::Percent);
+                    self.advance();
+                }
                 '=' => {
                     self.advance();
                     if self.current_char() == '=' {
@@ -175,38 +199,83 @@ impl Lexer {
                         self.advance();
                     }
                 }
-                '(' => { tokens.push(Token::LeftParen); self.advance(); }
-                ')' => { tokens.push(Token::RightParen); self.advance(); }
-                '{' => { tokens.push(Token::LeftBrace); self.advance(); }
-                '}' => { tokens.push(Token::RightBrace); self.advance(); }
-                '[' => { tokens.push(Token::LeftBracket); self.advance(); }
-                ']' => { tokens.push(Token::RightBracket); self.advance(); }
-                ',' => { tokens.push(Token::Comma); self.advance(); }
-                ';' => { tokens.push(Token::Semicolon); self.advance(); }
-                ':' => { tokens.push(Token::Colon); self.advance(); }
+                '(' => {
+                    tokens.push(Token::LeftParen);
+                    self.advance();
+                }
+                ')' => {
+                    tokens.push(Token::RightParen);
+                    self.advance();
+                }
+                '{' => {
+                    tokens.push(Token::LeftBrace);
+                    self.advance();
+                }
+                '}' => {
+                    tokens.push(Token::RightBrace);
+                    self.advance();
+                }
+                '[' => {
+                    tokens.push(Token::LeftBracket);
+                    self.advance();
+                }
+                ']' => {
+                    tokens.push(Token::RightBracket);
+                    self.advance();
+                }
+                ',' => {
+                    tokens.push(Token::Comma);
+                    self.advance();
+                }
+                ';' => {
+                    tokens.push(Token::Semicolon);
+                    self.advance();
+                }
+                ':' => {
+                    tokens.push(Token::Colon);
+                    self.advance();
+                }
+                '.' => {
+                    tokens.push(Token::Dot);
+                    self.advance();
+                }
                 _ => {
                     tokens.push(Token::Unknown(ch));
                     self.advance();
                 }
             }
         }
-        
+
         tokens.push(Token::EOF);
         Ok(tokens)
     }
-    
+
     fn current_char(&self) -> char {
         *self.input.get(self.position).unwrap_or(&'\0')
     }
-    
+
     fn advance(&mut self) {
         self.position += 1;
     }
-    
+
+    fn peek_char(&self) -> char {
+        *self.input.get(self.position + 1).unwrap_or(&'\0')
+    }
+
+    fn skip_line_comment(&mut self) {
+        // Skip the leading "//"
+        self.advance();
+        self.advance();
+
+        while self.position < self.input.len() && self.current_char() != '\n' {
+            self.advance();
+        }
+    }
+
     fn read_number(&mut self) -> Result<Token, String> {
         let mut num_str = String::new();
         let mut is_float = false;
-        
+
         while self.position < self.input.len() {
             let ch = self.current_char();
             if ch.is_ascii_digit() {
@@ -220,21 +289,25 @@ impl Lexer {
                 break;
             }
         }
-        
+
         if is_float {
-            num_str.parse::<f64>()
-                .map(Token::Float)
-                .map_err(|_| format!("Invalid float: {}", num_str))
+            // The lexer only constructs float strings from digits plus one dot,
+            // which always parses as f64 (possibly +/-inf).
+            let value = num_str
+                .parse::<f64>()
+                .expect("lexer built an invalid float literal");
+            Ok(Token::Float(value))
         } else {
-            num_str.parse::<i64>()
+            num_str
+                .parse::<i64>()
                 .map(Token::Number)
                 .map_err(|_| format!("Invalid number: {}", num_str))
         }
     }
-    
+
     fn read_identifier(&mut self) -> Token {
         let mut ident = String::new();
-        
+
         while self.position < self.input.len() {
             let ch = self.current_char();
             if ch.is_alphanumeric() || ch == '_' || ch == '$' {
@@ -244,11 +317,12 @@ impl Lexer {
                 break;
             }
         }
-        
+
         match ident.as_str() {
             "let" => Token::Let,
             "const" => Token::Const,
             "function" | "fn" => Token::Function,
+            "struct" => Token::Struct,
             "class" => Token::Class,
             "if" => Token::If,
             "else" => Token::Else,
@@ -264,16 +338,16 @@ impl Lexer {
             _ => Token::Identifier(ident),
         }
     }
-    
+
     fn read_string(&mut self) -> Result<Token, String> {
         let quote = self.current_char();
         self.advance(); // Skip opening quote
-        
+
         let mut s = String::new();
-        
+
         while self.position < self.input.len() {
             let ch = self.current_char();
-            
+
             if ch == quote {
                 self.advance(); // Skip closing quote
                 return Ok(Token::String(s));
@@ -297,7 +371,7 @@ impl Lexer {
                 self.advance();
             }
         }
-        
+
         Err("Unterminated string".to_string())
     }
 }
@@ -305,42 +379,144 @@ impl Lexer {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_basic_tokens() {
         let mut lexer = Lexer::new("let x = 42;");
         let tokens = lexer.tokenize().unwrap();
-        assert!(matches!(tokens[0], Token::Let));
-        assert!(matches!(tokens[1], Token::Identifier(_)));
-        assert!(matches!(tokens[2], Token::Equal));
-        assert!(matches!(tokens[3], Token::Number(42)));
-        assert!(matches!(tokens[4], Token::Semicolon));
+        assert_eq!(tokens[0], Token::Let);
+        assert_eq!(tokens[1], Token::Identifier("x".to_string()));
+        assert_eq!(tokens[2], Token::Equal);
+        assert_eq!(tokens[3], Token::Number(42));
+        assert_eq!(tokens[4], Token::Semicolon);
     }
-    
+
     #[test]
     fn test_string_literal() {
         let mut lexer = Lexer::new("\"hello world\"");
         let tokens = lexer.tokenize().unwrap();
-        assert!(matches!(tokens[0], Token::String(_)));
+        assert_eq!(tokens[0], Token::String("hello world".to_string()));
     }
-    
+
     #[test]
     fn test_operators() {
-        let mut lexer = Lexer::new("+ - * / % == != < <= > >=");
+        let mut lexer = Lexer::new("+ += - * / % == != < <= > >=");
         let tokens = lexer.tokenize().unwrap();
-        assert!(matches!(tokens[0], Token::Plus));
-        assert!(matches!(tokens[1], Token::Minus));
-        assert!(matches!(tokens[2], Token::Star));
-        assert!(matches!(tokens[3], Token::Slash));
-        assert!(matches!(tokens[4], Token::Percent));
+        assert_eq!(tokens[0], Token::Plus);
+        assert_eq!(tokens[1], Token::PlusEqual);
+        assert_eq!(tokens[2], Token::Minus);
+        assert_eq!(tokens[3], Token::Star);
+        assert_eq!(tokens[4], Token::Slash);
+        assert_eq!(tokens[5], Token::Percent);
     }
-    
+
     #[test]
     fn test_keywords() {
         let mut lexer = Lexer::new("let const function if else while for");
         let tokens = lexer.tokenize().unwrap();
-        assert!(matches!(tokens[0], Token::Let));
-        assert!(matches!(tokens[1], Token::Const));
-        assert!(matches!(tokens[2], Token::Function));
+        assert_eq!(tokens[0], Token::Let);
+        assert_eq!(tokens[1], Token::Const);
+        assert_eq!(tokens[2], Token::Function);
+    }
+
+    #[test]
+    fn test_line_comments_are_skipped() {
+        let mut lexer = Lexer::new("// comment\nlet x = 1;");
+        let tokens = lexer.tokenize().unwrap();
+        assert_eq!(tokens[0], Token::Let);
+        assert_eq!(tokens[1], Token::Identifier("x".to_string()));
+        assert_eq!(tokens[2], Token::Equal);
+        assert_eq!(tokens[3], Token::Number(1));
+        assert_eq!(tokens[4], Token::Semicolon);
+    }
+
+    #[test]
+    fn test_float_and_unknown_tokens() {
+        let mut lexer = Lexer::new("3.14 @");
+        let tokens = lexer.tokenize().unwrap();
+        assert_eq!(tokens[0], Token::Float(3.14));
+        assert_eq!(tokens[1], Token::Unknown('@'));
+    }
+
+    #[test]
+    fn test_single_ampersand_and_pipe_are_ignored() {
+        let mut lexer = Lexer::new("& | && ||");
+        let tokens = lexer.tokenize().unwrap();
+        assert_eq!(tokens[0], Token::And);
+        assert_eq!(tokens[1], Token::Or);
+        assert_eq!(tokens[2], Token::EOF);
+    }
+
+    #[test]
+    fn test_string_escape_and_unterminated_error() {
+        let mut lexer = Lexer::new("\"a\\n\\t\\r\\\\\\'\\\"b\\q\"");
+        let tokens = lexer.tokenize().unwrap();
+        assert!(matches!(&tokens[0], Token::String(s) if s.contains('\n')));
+
+        let mut bad = Lexer::new("\"unterminated");
+        let err = bad.tokenize().unwrap_err();
+        assert!(err.contains("Unterminated string"));
+
+        let mut bad_escape = Lexer::new("\"abc\\");
+        let err = bad_escape.tokenize().unwrap_err();
+        assert!(err.contains("Unterminated string"));
+    }
+
+    #[test]
+    fn test_comment_at_eof_and_token_display() {
+        let mut lexer = Lexer::new("// eof comment");
+        let tokens = lexer.tokenize().unwrap();
+        assert_eq!(tokens.len(), 1);
+        assert_eq!(tokens[0], Token::EOF);
+
+        assert_eq!(format!("{}", Token::Number(7)), "Number(7)");
+        assert_eq!(format!("{}", Token::Float(1.5)), "Float(1.5)");
+        assert_eq!(
+            format!("{}", Token::String("x".to_string())),
+            "String(\"x\")"
+        );
+        assert_eq!(format!("{}", Token::Char('x')), "Char('x')");
+        assert_eq!(format!("{}", Token::Boolean(true)), "Boolean(true)");
+        assert_eq!(
+            format!("{}", Token::Identifier("name".to_string())),
+            "Identifier(name)"
+        );
+        assert_eq!(format!("{}", Token::Unknown('@')), "Unknown('@')");
+        assert_eq!(format!("{}", Token::Let), "Let");
+    }
+
+    #[test]
+    fn test_bang_and_bracket_tokens() {
+        let mut lexer = Lexer::new("! []");
+        let tokens = lexer.tokenize().unwrap();
+        assert_eq!(tokens[0], Token::Bang);
+        assert_eq!(tokens[1], Token::LeftBracket);
+        assert_eq!(tokens[2], Token::RightBracket);
+    }
+
+    #[test]
+    fn test_additional_keywords_and_aliases() {
+        let mut lexer =
+            Lexer::new("class struct break continue null undefined fn return true false");
+        let tokens = lexer.tokenize().unwrap();
+        assert_eq!(tokens[0], Token::Class);
+        assert_eq!(tokens[1], Token::Struct);
+        assert_eq!(tokens[2], Token::Break);
+        assert_eq!(tokens[3], Token::Continue);
+        assert_eq!(tokens[4], Token::Null);
+        assert_eq!(tokens[5], Token::Undefined);
+        assert_eq!(tokens[6], Token::Function);
+        assert_eq!(tokens[7], Token::Return);
+        assert_eq!(tokens[8], Token::Boolean(true));
+        assert_eq!(tokens[9], Token::Boolean(false));
+    }
+
+    #[test]
+    fn test_dot_token() {
+        let mut lexer = Lexer::new("a.b");
+        let tokens = lexer.tokenize().unwrap();
+        assert_eq!(tokens[0], Token::Identifier("a".to_string()));
+        assert_eq!(tokens[1], Token::Dot);
+        assert_eq!(tokens[2], Token::Identifier("b".to_string()));
     }
 }

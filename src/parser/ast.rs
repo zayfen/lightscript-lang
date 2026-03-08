@@ -18,7 +18,27 @@ pub struct Param {
 }
 
 #[derive(Debug, Clone, PartialEq)]
+pub struct StructFieldDecl {
+    pub name: String,
+    pub ty: String,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct StructFieldInit {
+    pub name: String,
+    pub value: Expr,
+}
+
+#[derive(Debug, Clone, PartialEq)]
 pub enum Stmt {
+    Import {
+        path: String,
+        modules: Vec<String>,
+    },
+    StructDecl {
+        name: String,
+        fields: Vec<StructFieldDecl>,
+    },
     Expression(Expr),
     VariableDecl {
         name: String,
@@ -27,6 +47,10 @@ pub enum Stmt {
         is_const: bool,
     },
     Assignment {
+        name: String,
+        value: Expr,
+    },
+    StructMergeAssign {
         name: String,
         value: Expr,
     },
@@ -53,6 +77,14 @@ pub enum Stmt {
 pub enum Expr {
     Literal(Literal),
     Identifier(String),
+    StructInit {
+        struct_name: String,
+        fields: Vec<StructFieldInit>,
+    },
+    FieldAccess {
+        object: Box<Expr>,
+        field: String,
+    },
     Binary {
         left: Box<Expr>,
         op: BinaryOp,
@@ -112,7 +144,16 @@ mod tests {
     fn test_function_decl() {
         let stmt = Stmt::FunctionDecl {
             name: "add".to_string(),
-            params: vec!["a".to_string(), "b".to_string()],
+            params: vec![
+                Param {
+                    name: "a".to_string(),
+                    type_annotation: None,
+                },
+                Param {
+                    name: "b".to_string(),
+                    type_annotation: None,
+                },
+            ],
             return_type: Some("i64".to_string()),
             body: vec![Stmt::Return(Some(Expr::Binary {
                 left: Box::new(Expr::Identifier("a".to_string())),

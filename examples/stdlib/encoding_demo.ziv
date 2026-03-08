@@ -1,0 +1,18 @@
+// Encoding builtins demo
+println("encoding demo");
+println(strlen(base64Encode("abc")));
+println(strlen(base64Decode("YWJj")));
+println(strlen(hexEncode("abc")));
+println(strlen(hexDecode("616263")));
+println(strlen(urlEncode("a b")));
+println(strlen(urlDecode("a%20b")));
+let bytes = utf8Encode("abc");
+println(vectorLen(bytes));
+println(strlen(utf8Decode(bytes)));
+println(strlen(csvEncode(bytes)));
+let rows = csvDecode("1,20,300");
+println(vectorLen(rows));
+println(strlen(queryStringify(12)));
+let query_map = queryParse("a=1&b=2");
+println(hashMapLen(query_map));
+println("encoding done");

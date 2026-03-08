@@ -1,12 +1,5 @@
-// Ziv - Hello World 示例
-// 演示基本的 print 和 println 函数
-
-// 打印字符串
+// Basic print demo
 print("Hello, ");
 println("Ziv!");
-
-// 打印数字
 println(42);
-
-// 打印表达式结果
 println(10 + 20);

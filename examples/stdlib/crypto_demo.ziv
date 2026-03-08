@@ -1,0 +1,17 @@
+// Crypto builtins demo
+println("crypto demo");
+println(strlen(md5("abc")));
+println(strlen(sha1("abc")));
+println(strlen(sha256("abc")));
+println(strlen(sha512("abc")));
+println(strlen(hmacSha256("abc", "key")));
+println(strlen(pbkdf2("password", "salt", 1000)));
+let encrypted = encryptAES("hello", "secret");
+println(strlen(encrypted));
+println(strlen(decryptAES(encrypted, "secret")));
+let signature = sign("message", "private");
+println(strlen(signature));
+println(verify("message", signature, "public"));
+println(strlen(randomBytes(16)));
+println(strlen(randomUUID()));
+println("crypto done");

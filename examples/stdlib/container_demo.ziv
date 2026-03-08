@@ -1,0 +1,42 @@
+// Container runtime demo
+println("container demo");
+
+let v = vectorNew();
+println(vectorLen(v));
+vectorPush(v, 10);
+vectorPush(v, 20);
+vectorInsert(v, 1, 15);
+println(vectorLen(v));
+println(vectorGet(v, 1));
+println(vectorContains(v, 20));
+println(vectorRemove(v, 0));
+vectorSet(v, 0, 99);
+println(vectorGet(v, 0));
+println(vectorPop(v));
+println(vectorLen(v));
+vectorClear(v);
+println(vectorLen(v));
+
+let m = hashMapNew();
+hashMapSet(m, 1, 100);
+hashMapSet(m, 2, 200);
+println(hashMapLen(m));
+println(hashMapGet(m, 1));
+println(hashMapHas(m, 2));
+println(hashMapRemove(m, 2));
+println(hashMapHas(m, 2));
+
+let m2 = hashMapNew();
+hashMapSet(m2, 3, 300);
+hashMapMerge(m, m2);
+println(hashMapGet(m, 3));
+
+let keys = hashMapKeys(m);
+let values = hashMapValues(m);
+println(vectorLen(keys));
+println(vectorLen(values));
+
+hashMapClear(m);
+println(hashMapLen(m));
+
+println("container done");

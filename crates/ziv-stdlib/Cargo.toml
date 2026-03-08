@@ -1,0 +1,11 @@
+[package]
+name = "ziv-stdlib"
+version = "0.1.0"
+edition = "2021"
+authors = ["Zayfen <zayfen@example.com>"]
+description = "Standard library registry for Ziv"
+license = "MIT OR Apache-2.0"
+
+[lib]
+name = "ziv_stdlib"
+path = "src/lib.rs"

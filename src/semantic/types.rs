@@ -15,6 +15,12 @@ pub enum Type {
 
     // Compound types
     Array(Box<Type>),
+    Vector(Box<Type>),
+    HashMap {
+        key: Box<Type>,
+        value: Box<Type>,
+    },
+    Struct(String),
     Function {
         params: Vec<Type>,
         return_type: Box<Type>,
@@ -34,6 +40,9 @@ impl fmt::Display for Type {
             Type::Void => write!(f, "void"),
             Type::Null => write!(f, "null"),
             Type::Array(elem) => write!(f, "{}[]", elem),
+            Type::Vector(elem) => write!(f, "vector<{}>", elem),
+            Type::HashMap { key, value } => write!(f, "hashmap<{}, {}>", key, value),
+            Type::Struct(name) => write!(f, "{}", name),
             Type::Function {
                 params,
                 return_type,
@@ -53,8 +62,18 @@ impl From<&str> for Type {
             "float" | "f32" | "f64" => Type::Float,
             "string" | "str" => Type::String,
             "bool" | "boolean" => Type::Bool,
+            "array" => Type::Array(Box::new(Type::Any)),
             "void" => Type::Void,
             "null" => Type::Null,
+            "vector" => Type::Vector(Box::new(Type::Any)),
+            "hashmap" | "map" => Type::HashMap {
+                key: Box::new(Type::Any),
+                value: Box::new(Type::Any),
+            },
+            "function" | "fn" => Type::Function {
+                params: vec![],
+                return_type: Box::new(Type::Any),
+            },
             "any" => Type::Any,
             _ => Type::Any,
         }
@@ -77,5 +96,61 @@ mod tests {
     fn test_array_type() {
         let arr_type = Type::Array(Box::new(Type::Int));
         assert_eq!(format!("{}", arr_type), "int[]");
+    }
+
+    #[test]
+    fn test_type_from_str_variants() {
+        assert_eq!(Type::from("i64"), Type::Int);
+        assert_eq!(Type::from("f64"), Type::Float);
+        assert_eq!(Type::from("str"), Type::String);
+        assert_eq!(Type::from("boolean"), Type::Bool);
+        assert_eq!(Type::from("array"), Type::Array(Box::new(Type::Any)));
+        assert_eq!(Type::from("void"), Type::Void);
+        assert_eq!(Type::from("null"), Type::Null);
+        assert_eq!(Type::from("vector"), Type::Vector(Box::new(Type::Any)));
+        assert_eq!(
+            Type::from("hashmap"),
+            Type::HashMap {
+                key: Box::new(Type::Any),
+                value: Box::new(Type::Any),
+            }
+        );
+        assert_eq!(
+            Type::from("function"),
+            Type::Function {
+                params: vec![],
+                return_type: Box::new(Type::Any),
+            }
+        );
+        assert_eq!(Type::from("any"), Type::Any);
+        assert_eq!(Type::from("unknown"), Type::Any);
+    }
+
+    #[test]
+    fn test_display_void_null_any_and_function() {
+        assert_eq!(format!("{}", Type::Void), "void");
+        assert_eq!(format!("{}", Type::Null), "null");
+        assert_eq!(format!("{}", Type::Any), "any");
+        assert_eq!(
+            format!(
+                "{}",
+                Type::HashMap {
+                    key: Box::new(Type::String),
+                    value: Box::new(Type::Int)
+                }
+            ),
+            "hashmap<string, int>"
+        );
+        assert_eq!(
+            format!("{}", Type::Vector(Box::new(Type::Int))),
+            "vector<int>"
+        );
+        assert_eq!(format!("{}", Type::Struct("Person".to_string())), "Person");
+
+        let f = Type::Function {
+            params: vec![Type::Int, Type::String],
+            return_type: Box::new(Type::Bool),
+        };
+        assert_eq!(format!("{}", f), "(int, string) -> bool");
     }
 }
