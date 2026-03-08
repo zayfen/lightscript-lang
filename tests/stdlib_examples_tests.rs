@@ -66,6 +66,7 @@ fn collect_calls_in_expr(expr: &Expr, calls: &mut HashSet<String>) {
 
 fn collect_calls_in_stmt(stmt: &Stmt, calls: &mut HashSet<String>) {
     match stmt {
+        Stmt::Import { .. } => {}
         Stmt::Expression(expr) => collect_calls_in_expr(expr, calls),
         Stmt::VariableDecl { init, .. } => {
             if let Some(expr) = init {
@@ -170,7 +171,11 @@ fn test_stdlib_examples_compile_and_run() {
             String::from_utf8_lossy(&compile.stdout),
             String::from_utf8_lossy(&compile.stderr)
         );
-        assert!(output.exists(), "missing output binary for {}", file.display());
+        assert!(
+            output.exists(),
+            "missing output binary for {}",
+            file.display()
+        );
 
         let run = Command::new(&output)
             .current_dir(dir.path())

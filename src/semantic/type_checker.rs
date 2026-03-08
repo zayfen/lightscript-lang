@@ -60,6 +60,8 @@ impl TypeChecker {
 
     pub fn check_stmt(&mut self, stmt: &Stmt) -> TypeCheckResult<()> {
         match stmt {
+            Stmt::Import { .. } => Ok(()),
+
             Stmt::Expression(expr) => {
                 self.check_expr(expr)?;
                 Ok(())
@@ -191,7 +193,8 @@ impl TypeChecker {
                     for stmt in else_stmts {
                         self.check_stmt(stmt)?;
                     }
-                    self.symbol_table.exit_scope(); }
+                    self.symbol_table.exit_scope();
+                }
 
                 Ok(())
             }

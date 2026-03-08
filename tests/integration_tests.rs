@@ -120,3 +120,113 @@ fn test_cli_compiled_program_emits_print_output() {
     let stdout = String::from_utf8_lossy(&run.stdout);
     assert_eq!(stdout, "Hello, Ziv!\n42\n30\n");
 }
+
+#[test]
+fn test_cli_from_import_compiles_and_runs() {
+    let dir = tempdir().unwrap();
+    let main = dir.path().join("main.ziv");
+    let math = dir.path().join("math.ziv");
+
+    fs::write(
+        &main,
+        r#"
+        from { "./math.ziv" } import { add };
+        println(add(20, 22));
+        "#,
+    )
+    .unwrap();
+    fs::write(
+        &math,
+        r#"
+        function add(a, b) { return a + b; }
+        function sub(a, b) { return a - b; }
+        "#,
+    )
+    .unwrap();
+
+    let output = Command::new(bin())
+        .arg(&main)
+        .arg("-o")
+        .arg("import_bin")
+        .current_dir(dir.path())
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "compile stderr: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let run = Command::new(dir.path().join("import_bin"))
+        .current_dir(dir.path())
+        .output()
+        .unwrap();
+    assert!(
+        run.status.success(),
+        "run stderr: {}",
+        String::from_utf8_lossy(&run.stderr)
+    );
+    assert_eq!(String::from_utf8_lossy(&run.stdout), "42\n");
+}
+
+#[test]
+fn test_cli_from_import_missing_module_reports_error() {
+    let dir = tempdir().unwrap();
+    let main = dir.path().join("main_missing_import.ziv");
+    let math = dir.path().join("math_missing_import.ziv");
+
+    fs::write(
+        &main,
+        r#"
+        from { "./math_missing_import.ziv" } import { missing };
+        println(missing(1, 2));
+        "#,
+    )
+    .unwrap();
+    fs::write(&math, "function add(a, b) { return a + b; }").unwrap();
+
+    let output = Command::new(bin())
+        .arg(&main)
+        .arg("-o")
+        .arg("missing_import_bin")
+        .current_dir(dir.path())
+        .output()
+        .unwrap();
+
+    assert!(!output.status.success());
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(stderr.contains("Module 'missing' not found"));
+}
+
+#[test]
+fn test_from_import_full_demo_example_compiles_and_runs() {
+    let dir = tempdir().unwrap();
+    let example = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("examples")
+        .join("from_import")
+        .join("full_demo.ziv");
+
+    let output = Command::new(bin())
+        .arg(&example)
+        .arg("-o")
+        .arg("from_import_demo_bin")
+        .current_dir(dir.path())
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "compile stderr: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let run = Command::new(dir.path().join("from_import_demo_bin"))
+        .current_dir(dir.path())
+        .output()
+        .unwrap();
+    assert!(
+        run.status.success(),
+        "run stderr: {}",
+        String::from_utf8_lossy(&run.stderr)
+    );
+    assert_eq!(String::from_utf8_lossy(&run.stdout), "27\n42\n9\n7\n");
+}

@@ -1,0 +1,8 @@
+// Complete from...import demo
+from { "./advanced_ops.ziv" } import { square_plus, choose };
+from "./math_ops.ziv" import { sub, magic };
+
+println(square_plus(5, 2));
+println(sub(100, 58));
+println(choose(1, 9, 8));
+println(magic);

@@ -19,6 +19,10 @@ pub struct Param {
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Stmt {
+    Import {
+        path: String,
+        modules: Vec<String>,
+    },
     Expression(Expr),
     VariableDecl {
         name: String,

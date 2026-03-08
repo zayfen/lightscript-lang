@@ -113,10 +113,13 @@ impl IRBuilder {
                     let ptr = format!("arg{}", i);
                     // Add parameter to function signature
                     func.params.push((ptr.clone(), IRType::I64));
-                    self.add_instr(&mut func, IRInstruction::Alloc {
-                        dest: ptr.clone(),
-                        ty: IRType::I64,
-                    });
+                    self.add_instr(
+                        &mut func,
+                        IRInstruction::Alloc {
+                            dest: ptr.clone(),
+                            ty: IRType::I64,
+                        },
+                    );
                     self.variables.insert(param.name.clone(), ptr);
                 }
 
@@ -126,10 +129,13 @@ impl IRBuilder {
                 }
 
                 // Add implicit return if not present
-                self.add_instr(&mut func, IRInstruction::Ret {
-                    ty: IRType::I64,
-                    value: Some(IRValue::Const(0)),
-                });
+                self.add_instr(
+                    &mut func,
+                    IRInstruction::Ret {
+                        ty: IRType::I64,
+                        value: Some(IRValue::Const(0)),
+                    },
+                );
 
                 self.module.add_function(func);
             }
@@ -145,7 +151,7 @@ impl IRBuilder {
 
         for stmt in &program.statements {
             match stmt {
-                Stmt::FunctionDecl { .. } => {} // Skip, already processed
+                Stmt::FunctionDecl { .. } | Stmt::Import { .. } => {} // Skip, already processed
                 _ => self.build_stmt(stmt, &mut main_func),
             }
         }
@@ -156,10 +162,13 @@ impl IRBuilder {
             Some(IRValue::Const(0))
         };
 
-        self.add_instr(&mut main_func, IRInstruction::Ret {
-            ty: IRType::I64,
-            value: ret_value,
-        });
+        self.add_instr(
+            &mut main_func,
+            IRInstruction::Ret {
+                ty: IRType::I64,
+                value: ret_value,
+            },
+        );
 
         self.module.add_function(main_func);
         self.module
@@ -167,6 +176,8 @@ impl IRBuilder {
 
     fn build_stmt(&mut self, stmt: &Stmt, func: &mut IRFunction) {
         match stmt {
+            Stmt::Import { .. } => {}
+
             Stmt::Expression(expr) => {
                 let value = self.build_expr(expr, func);
                 self.last_expr_value = Some(value);
@@ -174,18 +185,24 @@ impl IRBuilder {
 
             Stmt::VariableDecl { name, init, .. } => {
                 let ptr = self.fresh_var();
-                self.add_instr(func, IRInstruction::Alloc {
-                    dest: ptr.clone(),
-                    ty: IRType::I64,
-                });
+                self.add_instr(
+                    func,
+                    IRInstruction::Alloc {
+                        dest: ptr.clone(),
+                        ty: IRType::I64,
+                    },
+                );
 
                 if let Some(init_expr) = init {
                     let value = self.build_expr(init_expr, func);
-                    self.add_instr(func, IRInstruction::Store {
-                        dest: ptr.clone(),
-                        ty: IRType::I64,
-                        value,
-                    });
+                    self.add_instr(
+                        func,
+                        IRInstruction::Store {
+                            dest: ptr.clone(),
+                            ty: IRType::I64,
+                            value,
+                        },
+                    );
                     self.last_expr_value = Some(IRValue::Var(ptr.clone()));
                 }
 
@@ -195,11 +212,14 @@ impl IRBuilder {
             Stmt::Assignment { name, value } => {
                 if let Some(ptr) = self.variables.get(name).cloned() {
                     let val = self.build_expr(value, func);
-                    self.add_instr(func, IRInstruction::Store {
-                        dest: ptr,
-                        ty: IRType::I64,
-                        value: val,
-                    });
+                    self.add_instr(
+                        func,
+                        IRInstruction::Store {
+                            dest: ptr,
+                            ty: IRType::I64,
+                            value: val,
+                        },
+                    );
                 }
             }
 
@@ -211,10 +231,13 @@ impl IRBuilder {
                 } else {
                     None
                 };
-                self.add_instr(func, IRInstruction::Ret {
-                    ty: IRType::I64,
-                    value,
-                });
+                self.add_instr(
+                    func,
+                    IRInstruction::Ret {
+                        ty: IRType::I64,
+                        value,
+                    },
+                );
             }
 
             Stmt::If {
@@ -227,11 +250,14 @@ impl IRBuilder {
                 let else_label = self.fresh_label();
                 let end_label = self.fresh_label();
 
-                self.add_instr(func, IRInstruction::CondBranch {
-                    condition: cond_val,
-                    true_label: then_label.clone(),
-                    false_label: else_label.clone(),
-                });
+                self.add_instr(
+                    func,
+                    IRInstruction::CondBranch {
+                        condition: cond_val,
+                        true_label: then_label.clone(),
+                        false_label: else_label.clone(),
+                    },
+                );
 
                 // Then branch
                 self.add_instr(func, IRInstruction::Label(then_label));
@@ -266,11 +292,14 @@ impl IRBuilder {
 
                 self.add_instr(func, IRInstruction::Label(start_label.clone()));
                 let cond_val = self.build_expr(condition, func);
-                self.add_instr(func, IRInstruction::CondBranch {
-                    condition: cond_val,
-                    true_label: body_label.clone(),
-                    false_label: end_label.clone(),
-                });
+                self.add_instr(
+                    func,
+                    IRInstruction::CondBranch {
+                        condition: cond_val,
+                        true_label: body_label.clone(),
+                        false_label: end_label.clone(),
+                    },
+                );
 
                 self.add_instr(func, IRInstruction::Label(body_label));
                 for stmt in body {
@@ -303,11 +332,14 @@ impl IRBuilder {
             Expr::Identifier(name) => {
                 if let Some(ptr) = self.variables.get(name).cloned() {
                     let dest = self.fresh_var();
-                    self.add_instr(func, IRInstruction::Load {
-                        dest: dest.clone(),
-                        ty: IRType::I64,
-                        ptr: ptr,
-                    });
+                    self.add_instr(
+                        func,
+                        IRInstruction::Load {
+                            dest: dest.clone(),
+                            ty: IRType::I64,
+                            ptr: ptr,
+                        },
+                    );
                     IRValue::Var(dest)
                 } else {
                     IRValue::Const(0)
@@ -400,7 +432,9 @@ impl IRBuilder {
 
                 // Keep most built-ins semantic-only for now, but lower print/println to
                 // concrete runtime calls so executable output matches source behavior.
-                if self.builtin_functions.contains(callee) && !self.defined_functions.contains(callee) {
+                if self.builtin_functions.contains(callee)
+                    && !self.defined_functions.contains(callee)
+                {
                     if matches!(callee.as_str(), "print" | "println") {
                         if let Some(value) = arg_values.first() {
                             let function = match (callee.as_str(), value) {
@@ -425,11 +459,14 @@ impl IRBuilder {
                 }
 
                 let dest = self.fresh_var();
-                self.add_instr(func, IRInstruction::Call {
-                    result: Some(dest.clone()),
-                    function: callee.clone(),
-                    args: arg_values,
-                });
+                self.add_instr(
+                    func,
+                    IRInstruction::Call {
+                        result: Some(dest.clone()),
+                        function: callee.clone(),
+                        args: arg_values,
+                    },
+                );
                 IRValue::Var(dest)
             }
         }
@@ -515,10 +552,13 @@ mod tests {
             .instructions
             .iter()
             .any(|i| matches!(i, IRInstruction::Div { .. })));
-        assert!(main
-            .instructions
-            .iter()
-            .any(|i| matches!(i, IRInstruction::Cmp { op: crate::ir::CmpOp::Eq, .. })));
+        assert!(main.instructions.iter().any(|i| matches!(
+            i,
+            IRInstruction::Cmp {
+                op: crate::ir::CmpOp::Eq,
+                ..
+            }
+        )));
 
         let outer_fn = module
             .functions
@@ -633,10 +673,13 @@ mod tests {
             .iter()
             .find(|func| func.name == "_user_main")
             .unwrap();
-        assert!(main
-            .instructions
-            .iter()
-            .any(|i| matches!(i, IRInstruction::Ret { value: Some(IRValue::Const(0)), .. })));
+        assert!(main.instructions.iter().any(|i| matches!(
+            i,
+            IRInstruction::Ret {
+                value: Some(IRValue::Const(0)),
+                ..
+            }
+        )));
     }
 
     #[test]
@@ -674,28 +717,34 @@ mod tests {
             },
         ];
 
-        let program = Program::new(
-            exprs.into_iter()
-                .map(Stmt::Expression)
-                .collect::<Vec<_>>(),
-        );
+        let program = Program::new(exprs.into_iter().map(Stmt::Expression).collect::<Vec<_>>());
         let module = IRBuilder::new().build(&program);
         let main = module
             .functions
             .iter()
             .find(|func| func.name == "_user_main")
             .unwrap();
-        assert!(main
-            .instructions
-            .iter()
-            .any(|i| matches!(i, IRInstruction::Cmp { op: crate::ir::CmpOp::Lt, .. })));
-        assert!(main
-            .instructions
-            .iter()
-            .any(|i| matches!(i, IRInstruction::Cmp { op: crate::ir::CmpOp::Ge, .. })));
-        assert!(main
-            .instructions
-            .iter()
-            .any(|i| matches!(i, IRInstruction::Add { lhs: IRValue::Const(0), rhs: IRValue::Const(0), .. })));
+        assert!(main.instructions.iter().any(|i| matches!(
+            i,
+            IRInstruction::Cmp {
+                op: crate::ir::CmpOp::Lt,
+                ..
+            }
+        )));
+        assert!(main.instructions.iter().any(|i| matches!(
+            i,
+            IRInstruction::Cmp {
+                op: crate::ir::CmpOp::Ge,
+                ..
+            }
+        )));
+        assert!(main.instructions.iter().any(|i| matches!(
+            i,
+            IRInstruction::Add {
+                lhs: IRValue::Const(0),
+                rhs: IRValue::Const(0),
+                ..
+            }
+        )));
     }
 }

@@ -31,6 +31,10 @@ impl Parser {
     }
 
     fn parse_stmt(&mut self) -> ParseResult<Option<Stmt>> {
+        if self.match_from_import_start() {
+            return self.parse_import_stmt();
+        }
+
         match self.peek() {
             Some(Token::Let) | Some(Token::Const) => self.parse_var_decl(),
 
@@ -63,6 +67,59 @@ impl Parser {
                 }
             }
         }
+    }
+
+    fn parse_import_stmt(&mut self) -> ParseResult<Option<Stmt>> {
+        self.consume_identifier_keyword("from")?;
+
+        let path = match self.peek() {
+            Some(Token::LeftBrace) => {
+                self.advance();
+                let path = match self.peek().cloned() {
+                    Some(Token::String(path)) => {
+                        self.advance();
+                        path
+                    }
+                    _ => {
+                        return Err(format!(
+                            "Expected string path inside braces after 'from', got {:?}",
+                            self.peek()
+                        ));
+                    }
+                };
+                self.consume(&Token::RightBrace)?;
+                path
+            }
+            Some(Token::String(path)) => {
+                let path = path.clone();
+                self.advance();
+                path
+            }
+            _ => {
+                return Err(format!(
+                    "Expected string path (or {{ \"path\" }}) after 'from', got {:?}",
+                    self.peek()
+                ));
+            }
+        };
+
+        self.consume_identifier_keyword("import")?;
+        self.consume(&Token::LeftBrace)?;
+
+        let mut modules = Vec::new();
+        while !self.match_token(&Token::RightBrace) {
+            modules.push(self.consume_identifier()?);
+            if self.match_token(&Token::Comma) {
+                self.advance();
+            } else {
+                break;
+            }
+        }
+
+        self.consume(&Token::RightBrace)?;
+        self.consume_semicolon()?;
+
+        Ok(Some(Stmt::Import { path, modules }))
     }
 
     fn parse_var_decl(&mut self) -> ParseResult<Option<Stmt>> {
@@ -332,6 +389,10 @@ impl Parser {
         self.tokens.get(self.current)
     }
 
+    fn peek_n(&self, n: usize) -> Option<&Token> {
+        self.tokens.get(self.current + n)
+    }
+
     fn is_at_end(&self) -> bool {
         matches!(self.peek(), Some(Token::EOF))
     }
@@ -365,6 +426,29 @@ impl Parser {
             self.advance();
         }
         Ok(())
+    }
+
+    fn match_from_import_start(&self) -> bool {
+        if !matches!(self.peek(), Some(Token::Identifier(name)) if name == "from") {
+            return false;
+        }
+
+        match self.peek_n(1) {
+            Some(Token::String(_)) => true,
+            Some(Token::LeftBrace) => true,
+            Some(Token::Identifier(name)) if name == "import" => true,
+            _ => false,
+        }
+    }
+
+    fn consume_identifier_keyword(&mut self, keyword: &str) -> ParseResult<()> {
+        match self.peek() {
+            Some(Token::Identifier(name)) if name == keyword => {
+                self.advance();
+                Ok(())
+            }
+            _ => Err(format!("Expected '{}', got {:?}", keyword, self.peek())),
+        }
     }
 
     fn match_comparison(&self) -> Option<()> {
@@ -491,6 +575,64 @@ mod tests {
         assert_eq!(program.statements.len(), 2);
         assert!(matches!(program.statements[0], Stmt::FunctionDecl { .. }));
         assert!(matches!(program.statements[1], Stmt::While { .. }));
+    }
+
+    #[test]
+    fn test_parse_import_stmt() {
+        let mut parser = Parser::new(r#"from "./math.ziv" import { add, sub };"#);
+        let program = parser.parse().unwrap();
+        assert_eq!(program.statements.len(), 1);
+
+        assert!(matches!(&program.statements[0], Stmt::Import { .. }));
+        if let Stmt::Import { path, modules } = &program.statements[0] {
+            assert_eq!(path, "./math.ziv");
+            assert_eq!(modules, &vec!["add".to_string(), "sub".to_string()]);
+        }
+    }
+
+    #[test]
+    fn test_parse_import_stmt_with_braced_path() {
+        let mut parser = Parser::new(r#"from { "./math.ziv" } import { add, sub };"#);
+        let program = parser.parse().unwrap();
+        assert_eq!(program.statements.len(), 1);
+
+        assert!(matches!(&program.statements[0], Stmt::Import { .. }));
+        if let Stmt::Import { path, modules } = &program.statements[0] {
+            assert_eq!(path, "./math.ziv");
+            assert_eq!(modules, &vec!["add".to_string(), "sub".to_string()]);
+        }
+    }
+
+    #[test]
+    fn test_parse_import_stmt_missing_path_error() {
+        let mut parser = Parser::new("from import { add };");
+        let err = parser.parse().unwrap_err();
+        assert!(err.contains("Expected string path"));
+    }
+
+    #[test]
+    fn test_parse_import_stmt_braced_missing_string_error() {
+        let mut parser = Parser::new("from { x } import { add };");
+        let err = parser.parse().unwrap_err();
+        assert!(err.contains("Expected string path inside braces"));
+    }
+
+    #[test]
+    fn test_parse_import_stmt_missing_import_keyword_error() {
+        let mut parser = Parser::new(r#"from "./m.ziv" exports { add };"#);
+        let err = parser.parse().unwrap_err();
+        assert!(err.contains("Expected 'import'"));
+    }
+
+    #[test]
+    fn test_identifier_named_from_still_parses_as_expression() {
+        let mut parser = Parser::new("let from = 1; from + 2;");
+        let program = parser.parse().unwrap();
+        assert_eq!(program.statements.len(), 2);
+        assert!(matches!(
+            &program.statements[1],
+            Stmt::Expression(Expr::Binary { .. })
+        ));
     }
 
     #[test]
