@@ -15,6 +15,9 @@ pub struct IRBuilder {
     last_expr_value: Option<IRValue>,
     // Track if current block has a terminator (return/branch)
     current_block_terminated: bool,
+    struct_defs: HashMap<String, Vec<String>>,
+    struct_var_types: HashMap<String, String>,
+    struct_field_ptrs: HashMap<(String, String), String>,
 }
 
 impl IRBuilder {
@@ -39,6 +42,9 @@ impl IRBuilder {
             builtin_functions,
             last_expr_value: None,
             current_block_terminated: false,
+            struct_defs: HashMap::new(),
+            struct_var_types: HashMap::new(),
+            struct_field_ptrs: HashMap::new(),
         }
     }
 
@@ -86,6 +92,12 @@ impl IRBuilder {
     }
 
     pub fn build(mut self, program: &Program) -> IRModule {
+        for stmt in &program.statements {
+            if let Stmt::StructDecl { name, fields } = stmt {
+                self.register_struct_decl(name, fields);
+            }
+        }
+
         self.defined_functions = program
             .statements
             .iter()
@@ -106,6 +118,8 @@ impl IRBuilder {
                 self.var_counter = 0;
                 self.label_counter = 0;
                 self.variables.clear();
+                self.struct_var_types.clear();
+                self.struct_field_ptrs.clear();
 
                 let mut func = IRFunction::new(name.clone(), IRType::I64);
 
@@ -145,28 +159,26 @@ impl IRBuilder {
         self.current_block_terminated = false;
         self.var_counter = 0;
         self.variables.clear();
+        self.struct_var_types.clear();
+        self.struct_field_ptrs.clear();
 
         // Use _user_main to avoid conflict with C runtime's main
         let mut main_func = IRFunction::new("_user_main".to_string(), IRType::I64);
 
         for stmt in &program.statements {
             match stmt {
-                Stmt::FunctionDecl { .. } | Stmt::Import { .. } => {} // Skip, already processed
+                Stmt::FunctionDecl { .. } | Stmt::Import { .. } | Stmt::StructDecl { .. } => {} // Skip, already processed
                 _ => self.build_stmt(stmt, &mut main_func),
             }
         }
-
-        let ret_value = if let Some(value) = self.last_expr_value.take() {
-            Some(value)
-        } else {
-            Some(IRValue::Const(0))
-        };
 
         self.add_instr(
             &mut main_func,
             IRInstruction::Ret {
                 ty: IRType::I64,
-                value: ret_value,
+                // Keep process exit deterministic; examples that represent importable modules
+                // should still run successfully with code 0.
+                value: Some(IRValue::Const(0)),
             },
         );
 
@@ -174,16 +186,172 @@ impl IRBuilder {
         self.module
     }
 
+    fn register_struct_decl(&mut self, name: &str, fields: &[StructFieldDecl]) {
+        let field_names = fields.iter().map(|field| field.name.clone()).collect();
+        self.struct_defs.insert(name.to_string(), field_names);
+    }
+
+    fn resolve_struct_var_type(
+        &self,
+        type_annotation: &Option<String>,
+        init: &Option<Expr>,
+    ) -> Option<String> {
+        if let Some(type_name) = type_annotation {
+            if self.struct_defs.contains_key(type_name) {
+                return Some(type_name.clone());
+            }
+        }
+
+        if let Some(Expr::StructInit { struct_name, .. }) = init {
+            if self.struct_defs.contains_key(struct_name) {
+                return Some(struct_name.clone());
+            }
+        }
+
+        None
+    }
+
+    fn build_struct_var_decl(
+        &mut self,
+        func: &mut IRFunction,
+        var_name: &str,
+        struct_name: &str,
+        init: Option<&Expr>,
+    ) {
+        let Some(field_order) = self.struct_defs.get(struct_name).cloned() else {
+            return;
+        };
+
+        self.struct_var_types
+            .insert(var_name.to_string(), struct_name.to_string());
+
+        for field in field_order {
+            let ptr = self.fresh_var();
+            self.add_instr(
+                func,
+                IRInstruction::Alloc {
+                    dest: ptr.clone(),
+                    ty: IRType::I64,
+                },
+            );
+
+            let value = match init {
+                Some(Expr::StructInit { fields, .. }) => self
+                    .find_struct_field_init(fields, &field)
+                    .map(|expr| self.build_expr(expr, func))
+                    .unwrap_or(IRValue::Const(0)),
+                _ => IRValue::Const(0),
+            };
+
+            self.add_instr(
+                func,
+                IRInstruction::Store {
+                    dest: ptr.clone(),
+                    ty: IRType::I64,
+                    value,
+                },
+            );
+            self.struct_field_ptrs
+                .insert((var_name.to_string(), field), ptr);
+        }
+    }
+
+    fn find_struct_field_init<'a>(
+        &self,
+        fields: &'a [StructFieldInit],
+        name: &str,
+    ) -> Option<&'a Expr> {
+        fields
+            .iter()
+            .find(|field| field.name == name)
+            .map(|field| &field.value)
+    }
+
+    fn apply_struct_update(
+        &mut self,
+        func: &mut IRFunction,
+        var_name: &str,
+        struct_name: &str,
+        fields: &[StructFieldInit],
+        partial: bool,
+    ) {
+        let Some(var_struct_name) = self.struct_var_types.get(var_name).cloned() else {
+            return;
+        };
+        if var_struct_name != struct_name {
+            return;
+        }
+
+        if partial {
+            for field in fields {
+                if let Some(ptr) = self
+                    .struct_field_ptrs
+                    .get(&(var_name.to_string(), field.name.clone()))
+                    .cloned()
+                {
+                    let value = self.build_expr(&field.value, func);
+                    self.add_instr(
+                        func,
+                        IRInstruction::Store {
+                            dest: ptr,
+                            ty: IRType::I64,
+                            value,
+                        },
+                    );
+                }
+            }
+            return;
+        }
+
+        let Some(field_order) = self.struct_defs.get(&var_struct_name).cloned() else {
+            return;
+        };
+        for field_name in field_order {
+            if let Some(ptr) = self
+                .struct_field_ptrs
+                .get(&(var_name.to_string(), field_name.clone()))
+                .cloned()
+            {
+                let value = self
+                    .find_struct_field_init(fields, &field_name)
+                    .map(|expr| self.build_expr(expr, func))
+                    .unwrap_or(IRValue::Const(0));
+                self.add_instr(
+                    func,
+                    IRInstruction::Store {
+                        dest: ptr,
+                        ty: IRType::I64,
+                        value,
+                    },
+                );
+            }
+        }
+    }
+
     fn build_stmt(&mut self, stmt: &Stmt, func: &mut IRFunction) {
         match stmt {
             Stmt::Import { .. } => {}
+
+            Stmt::StructDecl { name, fields } => {
+                self.register_struct_decl(name, fields);
+            }
 
             Stmt::Expression(expr) => {
                 let value = self.build_expr(expr, func);
                 self.last_expr_value = Some(value);
             }
 
-            Stmt::VariableDecl { name, init, .. } => {
+            Stmt::VariableDecl {
+                name,
+                type_annotation,
+                init,
+                ..
+            } => {
+                if let Some(struct_name) = self.resolve_struct_var_type(type_annotation, init) {
+                    self.build_struct_var_decl(func, name, &struct_name, init.as_ref());
+                    return;
+                }
+
                 let ptr = self.fresh_var();
                 self.add_instr(
                     func,
@@ -210,6 +378,17 @@ impl IRBuilder {
             }
 
             Stmt::Assignment { name, value } => {
+                if self.struct_var_types.contains_key(name) {
+                    if let Expr::StructInit {
+                        struct_name,
+                        fields,
+                    } = value
+                    {
+                        self.apply_struct_update(func, name, struct_name, fields, false);
+                    }
+                    return;
+                }
+
                 if let Some(ptr) = self.variables.get(name).cloned() {
                     let val = self.build_expr(value, func);
                     self.add_instr(
@@ -220,6 +399,16 @@ impl IRBuilder {
                             value: val,
                         },
                     );
+                }
+            }
+
+            Stmt::StructMergeAssign { name, value } => {
+                if let Expr::StructInit {
+                    struct_name,
+                    fields,
+                } = value
+                {
+                    self.apply_struct_update(func, name, struct_name, fields, true);
                 }
             }
 
@@ -344,6 +533,30 @@ impl IRBuilder {
                 } else {
                     IRValue::Const(0)
                 }
+            }
+
+            Expr::StructInit { .. } => IRValue::Const(0),
+
+            Expr::FieldAccess { object, field } => {
+                if let Expr::Identifier(var_name) = object.as_ref() {
+                    if let Some(ptr) = self
+                        .struct_field_ptrs
+                        .get(&(var_name.clone(), field.clone()))
+                        .cloned()
+                    {
+                        let dest = self.fresh_var();
+                        self.add_instr(
+                            func,
+                            IRInstruction::Load {
+                                dest: dest.clone(),
+                                ty: IRType::I64,
+                                ptr,
+                            },
+                        );
+                        return IRValue::Var(dest);
+                    }
+                }
+                IRValue::Const(0)
             }
 
             Expr::Binary { left, op, right } => {
@@ -746,5 +959,77 @@ mod tests {
                 ..
             }
         )));
+    }
+
+    #[test]
+    fn test_struct_field_access_and_merge_lowering() {
+        let mut parser = Parser::new(
+            r#"
+            struct Person { age: int; score: int; }
+            let p: Person = Person.(age = 18, score = 90);
+            println(p.age);
+            p += Person.(age = 20);
+            println(p.age);
+            println(p.score);
+            "#,
+        );
+        let program = parser.parse().unwrap();
+        let module = IRBuilder::new().build(&program);
+        let main = module
+            .functions
+            .iter()
+            .find(|func| func.name == "_user_main")
+            .unwrap();
+
+        let stores = main
+            .instructions
+            .iter()
+            .filter(|instr| matches!(instr, IRInstruction::Store { .. }))
+            .count();
+        let loads = main
+            .instructions
+            .iter()
+            .filter(|instr| matches!(instr, IRInstruction::Load { .. }))
+            .count();
+        let print_calls = main
+            .instructions
+            .iter()
+            .filter(|instr| {
+                matches!(
+                    instr,
+                    IRInstruction::Call { function, .. } if function == IRBuilder::PRINTLN_I64
+                )
+            })
+            .count();
+
+        assert_eq!(stores, 3);
+        assert_eq!(loads, 3);
+        assert_eq!(print_calls, 3);
+    }
+
+    #[test]
+    fn test_struct_assignment_replaces_all_fields() {
+        let mut parser = Parser::new(
+            r#"
+            struct Person { age: int; score: int; }
+            let p: Person = Person.(age = 1, score = 2);
+            p = Person.(age = 3, score = 4);
+            println(p.score);
+            "#,
+        );
+        let program = parser.parse().unwrap();
+        let module = IRBuilder::new().build(&program);
+        let main = module
+            .functions
+            .iter()
+            .find(|func| func.name == "_user_main")
+            .unwrap();
+
+        let stores = main
+            .instructions
+            .iter()
+            .filter(|instr| matches!(instr, IRInstruction::Store { .. }))
+            .count();
+        assert_eq!(stores, 4);
     }
 }

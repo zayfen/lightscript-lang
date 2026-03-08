@@ -75,6 +75,7 @@ impl Compiler {
         match stmt {
             Stmt::FunctionDecl { name, .. } => Some(name.as_str()),
             Stmt::VariableDecl { name, .. } => Some(name.as_str()),
+            Stmt::StructDecl { name, .. } => Some(name.as_str()),
             _ => None,
         }
     }
@@ -518,6 +519,16 @@ mod tests {
         }
     }
 
+    fn make_struct(name: &str) -> Stmt {
+        Stmt::StructDecl {
+            name: name.to_string(),
+            fields: vec![crate::parser::ast::StructFieldDecl {
+                name: "x".to_string(),
+                ty: "int".to_string(),
+            }],
+        }
+    }
+
     #[test]
     fn test_compiler_creation() {
         let compiler = Compiler::new();
@@ -549,10 +560,12 @@ mod tests {
 
         let func = make_function("f");
         let var = make_variable("v", 1);
+        let strukt = make_struct("S");
         let expr = Stmt::Expression(Expr::Literal(Literal::Number(1)));
 
         assert_eq!(Compiler::top_level_symbol_name(&func), Some("f"));
         assert_eq!(Compiler::top_level_symbol_name(&var), Some("v"));
+        assert_eq!(Compiler::top_level_symbol_name(&strukt), Some("S"));
         assert_eq!(Compiler::top_level_symbol_name(&expr), None);
     }
 
@@ -710,6 +723,35 @@ mod tests {
             resolved.statements.last(),
             Some(Stmt::Expression(Expr::Call { callee, .. })) if callee == "add"
         ));
+    }
+
+    #[test]
+    fn test_resolve_imports_can_include_struct_symbols() {
+        let dir = tempdir().unwrap();
+        let module = dir.path().join("types.ziv");
+        fs::write(
+            &module,
+            r#"
+            struct Person { age: int; score: int; }
+            function mk(a, b) { return a + b; }
+            "#,
+        )
+        .unwrap();
+
+        let program = Program::new(vec![Stmt::Import {
+            path: "types.ziv".to_string(),
+            modules: vec!["Person".to_string()],
+        }]);
+
+        let compiler = Compiler::new();
+        let resolved = compiler
+            .resolve_imports(program, dir.path(), &mut HashSet::new(), &mut HashMap::new())
+            .unwrap();
+
+        assert!(resolved
+            .statements
+            .iter()
+            .any(|stmt| matches!(stmt, Stmt::StructDecl { name, .. } if name == "Person")));
     }
 
     #[test]

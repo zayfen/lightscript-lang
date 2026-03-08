@@ -3,6 +3,7 @@
 //! This crate owns builtin function definitions and categories.
 
 pub mod array;
+pub mod container;
 pub mod crypto;
 pub mod encoding;
 pub mod filesystem;
@@ -48,6 +49,7 @@ impl Stdlib {
         stdlib.register_math_functions();
         stdlib.register_string_functions();
         stdlib.register_array_functions();
+        stdlib.register_container_functions();
         stdlib.register_filesystem_functions();
         stdlib.register_net_functions();
         stdlib.register_crypto_functions();
@@ -109,6 +111,8 @@ mod tests {
         assert!(stdlib.is_builtin("fetch"));
         assert!(stdlib.is_builtin("sha256"));
         assert!(stdlib.is_builtin("base64Encode"));
+        assert!(stdlib.is_builtin("vectorNew"));
+        assert!(stdlib.is_builtin("hashMapNew"));
     }
 
     #[test]
@@ -147,11 +151,12 @@ mod tests {
     #[test]
     fn test_registry_counts_and_categories() {
         let stdlib = Stdlib::new();
-        assert_eq!(stdlib.all_functions().len(), 97);
+        assert_eq!(stdlib.all_functions().len(), 117);
         assert_eq!(stdlib.functions_by_category("io").len(), 9);
         assert_eq!(stdlib.functions_by_category("math").len(), 8);
         assert_eq!(stdlib.functions_by_category("string").len(), 8);
         assert_eq!(stdlib.functions_by_category("array").len(), 8);
+        assert_eq!(stdlib.functions_by_category("container").len(), 20);
         assert_eq!(stdlib.functions_by_category("js").len(), 18);
         assert_eq!(stdlib.functions_by_category("filesystem").len(), 12);
         assert_eq!(stdlib.functions_by_category("net").len(), 10);

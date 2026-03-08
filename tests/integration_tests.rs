@@ -230,3 +230,115 @@ fn test_from_import_full_demo_example_compiles_and_runs() {
     );
     assert_eq!(String::from_utf8_lossy(&run.stdout), "27\n42\n9\n7\n");
 }
+
+#[test]
+fn test_cli_struct_example_compiles_and_runs() {
+    let dir = tempdir().unwrap();
+    let src = dir.path().join("struct_demo.ziv");
+    fs::write(
+        &src,
+        r#"
+        struct Person {
+            age: int;
+            score: int;
+        }
+
+        let p: Person = Person.(age = 18, score = 90);
+        println(p.age);
+        p += Person.(age = 20);
+        println(p.age);
+        println(p.score);
+        "#,
+    )
+    .unwrap();
+
+    let output = Command::new(bin())
+        .arg(&src)
+        .arg("-o")
+        .arg("struct_demo_bin")
+        .current_dir(dir.path())
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "compile stderr: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let run = Command::new(dir.path().join("struct_demo_bin"))
+        .current_dir(dir.path())
+        .output()
+        .unwrap();
+    assert!(
+        run.status.success(),
+        "run stderr: {}",
+        String::from_utf8_lossy(&run.stderr)
+    );
+    assert_eq!(String::from_utf8_lossy(&run.stdout), "18\n20\n90\n");
+}
+
+#[test]
+fn test_struct_demo_example_compiles_and_runs() {
+    let dir = tempdir().unwrap();
+    let example = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("examples")
+        .join("struct")
+        .join("struct_demo.ziv");
+
+    let output = Command::new(bin())
+        .arg(&example)
+        .arg("-o")
+        .arg("struct_demo_example_bin")
+        .current_dir(dir.path())
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "compile stderr: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let run = Command::new(dir.path().join("struct_demo_example_bin"))
+        .current_dir(dir.path())
+        .output()
+        .unwrap();
+    assert!(
+        run.status.success(),
+        "run stderr: {}",
+        String::from_utf8_lossy(&run.stderr)
+    );
+    assert_eq!(String::from_utf8_lossy(&run.stdout), "18\n20\n90\n");
+}
+
+#[test]
+fn test_module_style_example_runs_with_zero_exit_code() {
+    let dir = tempdir().unwrap();
+    let example = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("examples")
+        .join("from_import")
+        .join("advanced_ops.ziv");
+
+    let output = Command::new(bin())
+        .arg(&example)
+        .arg("-o")
+        .arg("advanced_ops_module_bin")
+        .current_dir(dir.path())
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "compile stderr: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let run = Command::new(dir.path().join("advanced_ops_module_bin"))
+        .current_dir(dir.path())
+        .output()
+        .unwrap();
+    assert!(
+        run.status.success(),
+        "run stderr: {}",
+        String::from_utf8_lossy(&run.stderr)
+    );
+    assert_eq!(String::from_utf8_lossy(&run.stdout), "");
+}

@@ -1,0 +1,26 @@
+// Container builtins demo
+println("container demo");
+
+vectorNew();
+vectorLen(0);
+vectorPush(0, 1);
+vectorPop(0);
+vectorGet(0, 0);
+vectorSet(0, 0, 1);
+vectorInsert(0, 0, 1);
+vectorRemove(0, 0);
+vectorContains(0, 1);
+vectorClear(0);
+
+hashMapNew();
+hashMapLen(0);
+hashMapSet(0, "k", 1);
+hashMapGet(0, "k");
+hashMapHas(0, "k");
+hashMapRemove(0, "k");
+hashMapKeys(0);
+hashMapValues(0);
+hashMapClear(0);
+hashMapMerge(0, 0);
+
+println("container done");

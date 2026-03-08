@@ -34,6 +34,7 @@ fn expected_outputs(stem: &str) -> (&'static str, &'static str) {
         "math_demo" => ("math demo\nmath done\n", ""),
         "string_demo" => ("string demo\nstring done\n", ""),
         "array_demo" => ("array demo\narray done\n", ""),
+        "container_demo" => ("container demo\ncontainer done\n", ""),
         "js_demo" => ("js demo\njs done\n", ""),
         "filesystem_demo" => ("filesystem demo\nfilesystem done\n", ""),
         "net_demo" => ("net demo\nnet done\n", ""),
@@ -56,6 +57,12 @@ fn collect_calls_in_expr(expr: &Expr, calls: &mut HashSet<String>) {
                 collect_calls_in_expr(arg, calls);
             }
         }
+        Expr::StructInit { fields, .. } => {
+            for field in fields {
+                collect_calls_in_expr(&field.value, calls);
+            }
+        }
+        Expr::FieldAccess { object, .. } => collect_calls_in_expr(object, calls),
         Expr::Binary { left, right, .. } => {
             collect_calls_in_expr(left, calls);
             collect_calls_in_expr(right, calls);
@@ -67,6 +74,7 @@ fn collect_calls_in_expr(expr: &Expr, calls: &mut HashSet<String>) {
 fn collect_calls_in_stmt(stmt: &Stmt, calls: &mut HashSet<String>) {
     match stmt {
         Stmt::Import { .. } => {}
+        Stmt::StructDecl { .. } => {}
         Stmt::Expression(expr) => collect_calls_in_expr(expr, calls),
         Stmt::VariableDecl { init, .. } => {
             if let Some(expr) = init {
@@ -74,6 +82,7 @@ fn collect_calls_in_stmt(stmt: &Stmt, calls: &mut HashSet<String>) {
             }
         }
         Stmt::Assignment { value, .. } => collect_calls_in_expr(value, calls),
+        Stmt::StructMergeAssign { value, .. } => collect_calls_in_expr(value, calls),
         Stmt::FunctionDecl { body, .. } => {
             for stmt in body {
                 collect_calls_in_stmt(stmt, calls);

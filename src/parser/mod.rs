@@ -40,6 +40,8 @@ impl Parser {
 
             Some(Token::Function) => self.parse_function_decl(),
 
+            Some(Token::Struct) => self.parse_struct_decl(),
+
             Some(Token::Return) => self.parse_return_stmt(),
 
             Some(Token::If) => self.parse_if_stmt(),
@@ -61,12 +63,53 @@ impl Parser {
                     } else {
                         Err("Invalid assignment target".to_string())
                     }
+                } else if self.match_token(&Token::PlusEqual) {
+                    self.advance();
+                    let value = self.parse_expr()?;
+                    self.consume_semicolon()?;
+
+                    if let Expr::Identifier(name) = expr {
+                        Ok(Some(Stmt::StructMergeAssign { name, value }))
+                    } else {
+                        Err("Invalid '+=' assignment target".to_string())
+                    }
                 } else {
                     self.consume_semicolon()?;
                     Ok(Some(Stmt::Expression(expr)))
                 }
             }
         }
+    }
+
+    fn parse_struct_decl(&mut self) -> ParseResult<Option<Stmt>> {
+        self.advance(); // consume 'struct'
+        let name = self.consume_identifier()?;
+        self.consume(&Token::LeftBrace)?;
+
+        let mut fields = Vec::new();
+        while !self.match_token(&Token::RightBrace) {
+            let field_name = self.consume_identifier()?;
+            self.consume(&Token::Colon)?;
+            let field_ty = self.consume_identifier()?;
+            fields.push(StructFieldDecl {
+                name: field_name,
+                ty: field_ty,
+            });
+
+            if self.match_token(&Token::Semicolon) || self.match_token(&Token::Comma) {
+                self.advance();
+            } else if !self.match_token(&Token::RightBrace) {
+                return Err(format!(
+                    "Expected ';' or ',' between struct fields, got {:?}",
+                    self.peek()
+                ));
+            }
+        }
+
+        self.consume(&Token::RightBrace)?;
+        self.consume_semicolon()?;
+
+        Ok(Some(Stmt::StructDecl { name, fields }))
     }
 
     fn parse_import_stmt(&mut self) -> ParseResult<Option<Stmt>> {
@@ -350,23 +393,43 @@ impl Parser {
             }
             Some(Token::Identifier(name)) => {
                 self.advance();
+                let mut expr = Expr::Identifier(name);
 
-                // Check if it's a function call
-                if self.match_token(&Token::LeftParen) {
-                    self.advance();
-                    let mut args = Vec::new();
-                    while !self.match_token(&Token::RightParen) {
-                        args.push(self.parse_expr()?);
-                        if !self.match_token(&Token::Comma) {
-                            break;
+                loop {
+                    if self.match_token(&Token::LeftParen) {
+                        let args = self.parse_call_args()?;
+                        if let Expr::Identifier(callee) = expr {
+                            expr = Expr::Call { callee, args };
+                        } else {
+                            return Err("Invalid function call target".to_string());
                         }
-                        self.advance();
+                        continue;
                     }
-                    self.consume(&Token::RightParen)?;
-                    Ok(Expr::Call { callee: name, args })
-                } else {
-                    Ok(Expr::Identifier(name))
+
+                    if self.match_token(&Token::Dot) {
+                        self.advance();
+
+                        if self.match_token(&Token::LeftParen) {
+                            if let Expr::Identifier(struct_name) = expr {
+                                expr = self.parse_struct_init_expr(struct_name)?;
+                            } else {
+                                return Err("Invalid struct initializer target".to_string());
+                            }
+                            continue;
+                        }
+
+                        let field = self.consume_identifier()?;
+                        expr = Expr::FieldAccess {
+                            object: Box::new(expr),
+                            field,
+                        };
+                        continue;
+                    }
+
+                    break;
                 }
+
+                Ok(expr)
             }
             Some(Token::LeftParen) => {
                 self.advance();
@@ -426,6 +489,46 @@ impl Parser {
             self.advance();
         }
         Ok(())
+    }
+
+    fn parse_call_args(&mut self) -> ParseResult<Vec<Expr>> {
+        self.consume(&Token::LeftParen)?;
+        let mut args = Vec::new();
+        while !self.match_token(&Token::RightParen) {
+            args.push(self.parse_expr()?);
+            if !self.match_token(&Token::Comma) {
+                break;
+            }
+            self.advance();
+        }
+        self.consume(&Token::RightParen)?;
+        Ok(args)
+    }
+
+    fn parse_struct_init_expr(&mut self, struct_name: String) -> ParseResult<Expr> {
+        self.consume(&Token::LeftParen)?;
+        let mut fields = Vec::new();
+
+        while !self.match_token(&Token::RightParen) {
+            let field_name = self.consume_identifier()?;
+            self.consume(&Token::Equal)?;
+            let field_value = self.parse_expr()?;
+            fields.push(StructFieldInit {
+                name: field_name,
+                value: field_value,
+            });
+
+            if !self.match_token(&Token::Comma) {
+                break;
+            }
+            self.advance();
+        }
+
+        self.consume(&Token::RightParen)?;
+        Ok(Expr::StructInit {
+            struct_name,
+            fields,
+        })
     }
 
     fn match_from_import_start(&self) -> bool {
@@ -582,12 +685,12 @@ mod tests {
         let mut parser = Parser::new(r#"from "./math.ziv" import { add, sub };"#);
         let program = parser.parse().unwrap();
         assert_eq!(program.statements.len(), 1);
-
-        assert!(matches!(&program.statements[0], Stmt::Import { .. }));
-        if let Stmt::Import { path, modules } = &program.statements[0] {
-            assert_eq!(path, "./math.ziv");
-            assert_eq!(modules, &vec!["add".to_string(), "sub".to_string()]);
-        }
+        let (path, modules) = match &program.statements[0] {
+            Stmt::Import { path, modules } => (path, modules),
+            _ => panic!("expected import statement"),
+        };
+        assert_eq!(path, "./math.ziv");
+        assert_eq!(modules, &vec!["add".to_string(), "sub".to_string()]);
     }
 
     #[test]
@@ -595,12 +698,12 @@ mod tests {
         let mut parser = Parser::new(r#"from { "./math.ziv" } import { add, sub };"#);
         let program = parser.parse().unwrap();
         assert_eq!(program.statements.len(), 1);
-
-        assert!(matches!(&program.statements[0], Stmt::Import { .. }));
-        if let Stmt::Import { path, modules } = &program.statements[0] {
-            assert_eq!(path, "./math.ziv");
-            assert_eq!(modules, &vec!["add".to_string(), "sub".to_string()]);
-        }
+        let (path, modules) = match &program.statements[0] {
+            Stmt::Import { path, modules } => (path, modules),
+            _ => panic!("expected import statement"),
+        };
+        assert_eq!(path, "./math.ziv");
+        assert_eq!(modules, &vec!["add".to_string(), "sub".to_string()]);
     }
 
     #[test]
@@ -735,6 +838,77 @@ mod tests {
 
         let mul_err = parser.consume_multiplication().unwrap_err();
         assert!(mul_err.contains("Expected multiplication operator"));
+    }
+
+    #[test]
+    fn test_parse_struct_decl_init_field_access_and_merge() {
+        let src = r#"
+            struct Person {
+                age: int;
+                score: int;
+            }
+            let p: Person = Person.(age = 18, score = 90);
+            let age = p.age;
+            p += Person.(age = 20);
+        "#;
+        let mut parser = Parser::new(src);
+        let program = parser.parse().unwrap();
+        assert_eq!(program.statements.len(), 4);
+        assert!(matches!(&program.statements[0], Stmt::StructDecl { .. }));
+        assert!(matches!(
+            &program.statements[1],
+            Stmt::VariableDecl {
+                init: Some(Expr::StructInit { .. }),
+                ..
+            }
+        ));
+        assert!(matches!(
+            &program.statements[2],
+            Stmt::VariableDecl {
+                init: Some(Expr::FieldAccess { .. }),
+                ..
+            }
+        ));
+        assert!(matches!(
+            &program.statements[3],
+            Stmt::StructMergeAssign { .. }
+        ));
+    }
+
+    #[test]
+    fn test_parse_struct_decl_missing_separator_error() {
+        let mut parser = Parser::new("struct S { a: int b: int; }");
+        let err = parser.parse().unwrap_err();
+        assert!(err.contains("Expected ';' or ',' between struct fields"));
+    }
+
+    #[test]
+    fn test_parse_struct_decl_without_last_separator() {
+        let mut parser = Parser::new("struct S { a: int }");
+        let program = parser.parse().unwrap();
+        assert_eq!(program.statements.len(), 1);
+        assert!(matches!(program.statements[0], Stmt::StructDecl { .. }));
+    }
+
+    #[test]
+    fn test_parse_invalid_plus_equal_target_error() {
+        let mut parser = Parser::new("(1 + 2) += 3;");
+        let err = parser.parse().unwrap_err();
+        assert!(err.contains("Invalid '+=' assignment target"));
+    }
+
+    #[test]
+    fn test_parse_invalid_function_call_target_error() {
+        let mut parser = Parser::new("foo()(1);");
+        let err = parser.parse().unwrap_err();
+        assert!(err.contains("Invalid function call target"));
+    }
+
+    #[test]
+    fn test_parse_invalid_struct_initializer_target_error() {
+        let mut parser = Parser::new("foo().(x = 1);");
+        let err = parser.parse().unwrap_err();
+        assert!(err.contains("Invalid struct initializer target"));
     }
 
     #[test]

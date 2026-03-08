@@ -14,6 +14,7 @@ pub enum Token {
     Let,
     Const,
     Function,
+    Struct,
     Class,
     If,
     Else,
@@ -29,6 +30,7 @@ pub enum Token {
     
     // Operators
     Plus,
+    PlusEqual,
     Minus,
     Star,
     Slash,
@@ -54,6 +56,7 @@ pub enum Token {
     Comma,
     Semicolon,
     Colon,
+    Dot,
     Arrow,
     FatArrow,
     
@@ -109,7 +112,15 @@ impl Lexer {
                 '"' | '\'' => {
                     tokens.push(self.read_string()?);
                 }
-                '+' => { tokens.push(Token::Plus); self.advance(); }
+                '+' => {
+                    self.advance();
+                    if self.current_char() == '=' {
+                        tokens.push(Token::PlusEqual);
+                        self.advance();
+                    } else {
+                        tokens.push(Token::Plus);
+                    }
+                }
                 '-' => { 
                     self.advance();
                     if self.current_char() == '>' {
@@ -191,6 +202,7 @@ impl Lexer {
                 ',' => { tokens.push(Token::Comma); self.advance(); }
                 ';' => { tokens.push(Token::Semicolon); self.advance(); }
                 ':' => { tokens.push(Token::Colon); self.advance(); }
+                '.' => { tokens.push(Token::Dot); self.advance(); }
                 _ => {
                     tokens.push(Token::Unknown(ch));
                     self.advance();
@@ -273,6 +285,7 @@ impl Lexer {
             "let" => Token::Let,
             "const" => Token::Const,
             "function" | "fn" => Token::Function,
+            "struct" => Token::Struct,
             "class" => Token::Class,
             "if" => Token::If,
             "else" => Token::Else,
@@ -350,13 +363,14 @@ mod tests {
     
     #[test]
     fn test_operators() {
-        let mut lexer = Lexer::new("+ - * / % == != < <= > >=");
+        let mut lexer = Lexer::new("+ += - * / % == != < <= > >=");
         let tokens = lexer.tokenize().unwrap();
         assert_eq!(tokens[0], Token::Plus);
-        assert_eq!(tokens[1], Token::Minus);
-        assert_eq!(tokens[2], Token::Star);
-        assert_eq!(tokens[3], Token::Slash);
-        assert_eq!(tokens[4], Token::Percent);
+        assert_eq!(tokens[1], Token::PlusEqual);
+        assert_eq!(tokens[2], Token::Minus);
+        assert_eq!(tokens[3], Token::Star);
+        assert_eq!(tokens[4], Token::Slash);
+        assert_eq!(tokens[5], Token::Percent);
     }
     
     #[test]
@@ -400,11 +414,7 @@ mod tests {
     fn test_string_escape_and_unterminated_error() {
         let mut lexer = Lexer::new("\"a\\n\\t\\r\\\\\\'\\\"b\\q\"");
         let tokens = lexer.tokenize().unwrap();
-        if let Token::String(s) = &tokens[0] {
-            assert!(s.contains('\n'));
-        } else {
-            panic!("expected string token");
-        }
+        assert!(matches!(&tokens[0], Token::String(s) if s.contains('\n')));
 
         let mut bad = Lexer::new("\"unterminated");
         let err = bad.tokenize().unwrap_err();
@@ -446,16 +456,26 @@ mod tests {
 
     #[test]
     fn test_additional_keywords_and_aliases() {
-        let mut lexer = Lexer::new("class break continue null undefined fn return true false");
+        let mut lexer = Lexer::new("class struct break continue null undefined fn return true false");
         let tokens = lexer.tokenize().unwrap();
         assert_eq!(tokens[0], Token::Class);
-        assert_eq!(tokens[1], Token::Break);
-        assert_eq!(tokens[2], Token::Continue);
-        assert_eq!(tokens[3], Token::Null);
-        assert_eq!(tokens[4], Token::Undefined);
-        assert_eq!(tokens[5], Token::Function);
-        assert_eq!(tokens[6], Token::Return);
-        assert_eq!(tokens[7], Token::Boolean(true));
-        assert_eq!(tokens[8], Token::Boolean(false));
+        assert_eq!(tokens[1], Token::Struct);
+        assert_eq!(tokens[2], Token::Break);
+        assert_eq!(tokens[3], Token::Continue);
+        assert_eq!(tokens[4], Token::Null);
+        assert_eq!(tokens[5], Token::Undefined);
+        assert_eq!(tokens[6], Token::Function);
+        assert_eq!(tokens[7], Token::Return);
+        assert_eq!(tokens[8], Token::Boolean(true));
+        assert_eq!(tokens[9], Token::Boolean(false));
+    }
+
+    #[test]
+    fn test_dot_token() {
+        let mut lexer = Lexer::new("a.b");
+        let tokens = lexer.tokenize().unwrap();
+        assert_eq!(tokens[0], Token::Identifier("a".to_string()));
+        assert_eq!(tokens[1], Token::Dot);
+        assert_eq!(tokens[2], Token::Identifier("b".to_string()));
     }
 }

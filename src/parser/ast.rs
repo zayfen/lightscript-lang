@@ -18,10 +18,26 @@ pub struct Param {
 }
 
 #[derive(Debug, Clone, PartialEq)]
+pub struct StructFieldDecl {
+    pub name: String,
+    pub ty: String,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct StructFieldInit {
+    pub name: String,
+    pub value: Expr,
+}
+
+#[derive(Debug, Clone, PartialEq)]
 pub enum Stmt {
     Import {
         path: String,
         modules: Vec<String>,
+    },
+    StructDecl {
+        name: String,
+        fields: Vec<StructFieldDecl>,
     },
     Expression(Expr),
     VariableDecl {
@@ -31,6 +47,10 @@ pub enum Stmt {
         is_const: bool,
     },
     Assignment {
+        name: String,
+        value: Expr,
+    },
+    StructMergeAssign {
         name: String,
         value: Expr,
     },
@@ -57,6 +77,14 @@ pub enum Stmt {
 pub enum Expr {
     Literal(Literal),
     Identifier(String),
+    StructInit {
+        struct_name: String,
+        fields: Vec<StructFieldInit>,
+    },
+    FieldAccess {
+        object: Box<Expr>,
+        field: String,
+    },
     Binary {
         left: Box<Expr>,
         op: BinaryOp,
