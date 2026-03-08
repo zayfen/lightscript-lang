@@ -26,7 +26,10 @@ Ziv 是一门正在快速演进的系统编程语言，语法风格接近 JavaSc
 
 - 当前默认可执行运行时已内置并可调用全部 10 类标准库函数（共 117 个）。
 - 这些函数已覆盖语义注册、IR 降级、链接与 examples/测试验证链路。
-- `net` / `crypto` / `utils` 中部分能力当前采用轻量实现，目标是提供稳定接口与可重复测试结果；若需要完整生产级协议栈与安全语义，建议通过外部运行时对象或宿主库替换。
+- `net` 中的 `fetch/http*/download/upload` 已通过 `curl` 执行真实 HTTP 请求；`dnsLookup/ping/websocketConnect` 提供基础网络能力。
+- 运行网络相关程序依赖目标环境存在 `curl` 且网络/DNS 可用；当请求失败时，`fetch/http*` 会返回 `curl` 输出的错误文本。
+- 回归测试会把 `net` 示例定向到本地 mock HTTP server，避免外网抖动导致 CI 不稳定。
+- `crypto` / `utils` 仍有部分函数采用轻量语义实现；若需要严格生产级安全语义或更完整行为，建议通过宿主 runtime 替换。
 
 ## 快速开始
 

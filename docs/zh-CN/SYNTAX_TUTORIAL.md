@@ -207,7 +207,9 @@ parseInt("123", 10);
 运行时说明：
 
 - 当前默认可执行运行时可执行全部标准库函数（117 个）。
-- `net` / `crypto` / `utils` 的部分函数目前使用轻量实现，重点保证接口稳定与可测试性；需要完整生产语义时建议接入外部宿主 runtime。
+- `net` 中 `fetch/http*/download/upload` 使用 `curl` 执行真实 HTTP 请求；运行依赖目标环境安装 `curl` 且网络/DNS 可用。
+- 请求失败时，`fetch/http*` 会返回 `curl` 错误文本；测试环境通过本地 mock HTTP server 保证回归稳定。
+- `crypto` / `utils` 的部分函数仍为轻量语义实现；需要严格生产语义时建议接入外部宿主 runtime。
 
 ## 10. 示例索引
 

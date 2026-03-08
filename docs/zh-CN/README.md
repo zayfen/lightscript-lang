@@ -22,3 +22,8 @@ for f in examples/stdlib/*.ziv; do
   ./target/debug/ziv "$f" -o /tmp/ziv_example && /tmp/ziv_example </dev/null
 done
 ```
+
+说明：
+
+- `net_demo.ziv` 依赖目标环境安装 `curl` 且可访问网络。
+- 测试用例会将网络请求重定向到本地 mock server，保证 CI 稳定。

@@ -108,6 +108,8 @@ println(apply(inc, 41));
 - `examples/stdlib/crypto_demo.ziv`
 - `examples/stdlib/encoding_demo.ziv`
 
+`net_demo.ziv` 默认会访问 `https://httpbin.org`，并额外请求 `https://www.baidu.com`，用于验证 `httpGet/fetch/httpPost/httpPut/httpDelete/download/upload` 的真实输出链路。
+
 运行全部测试：
 
 ```bash
@@ -128,11 +130,19 @@ for f in examples/stdlib/*.ziv; do
 done
 ```
 
+仅运行网络示例：
+
+```bash
+./target/debug/ziv examples/stdlib/net_demo.ziv -o /tmp/net_demo && /tmp/net_demo
+```
+
 ## 6. 当前实现边界
 
 - 117 个标准库函数均可执行、可编译、可测试。
-- `net` / `crypto` / `utils` 的部分函数当前为轻量实现（接口稳定、结果可预测），优先服务语言回归测试与示例验证。
-- 若业务需要完整生产能力（例如真实 HTTP 客户端栈、严格密码学实现、复杂 JSON 语义），建议替换为外部链接 runtime 或宿主库实现。
+- `net` 中 `fetch/http*/download/upload` 已使用 `curl` 发起真实 HTTP 请求，`dnsLookup/ping/websocketConnect` 提供基础网络能力。
+- 运行 `net` 函数依赖目标机器安装 `curl` 且网络/DNS 可用；请求失败时 `fetch/http*` 会返回 `curl` 输出文本，`download` 返回 `0`。
+- 测试与 CI 使用本地 mock HTTP server（见 `tests/integration_tests.rs` 与 `tests/stdlib_examples_tests.rs`）保证结果可重复。
+- `crypto` / `utils` 的部分能力仍偏向轻量语义实现；若业务需要严格生产级安全语义或完整宿主行为，建议替换为外部 runtime。
 
 ## 7. 推荐实践
 

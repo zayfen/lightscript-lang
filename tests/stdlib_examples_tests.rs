@@ -34,27 +34,51 @@ fn stdlib_example_files() -> Vec<PathBuf> {
 }
 
 fn parse_http_request(stream: &mut TcpStream) -> (String, String, String) {
-    let _ = stream.set_read_timeout(Some(Duration::from_millis(500)));
+    let _ = stream.set_read_timeout(Some(Duration::from_millis(200)));
     let mut data = Vec::new();
     let mut buf = [0_u8; 4096];
+    let deadline = Instant::now() + Duration::from_secs(2);
+    let mut expected_total_len: Option<usize> = None;
 
-    loop {
+    while Instant::now() < deadline {
         match stream.read(&mut buf) {
             Ok(0) => break,
             Ok(n) => {
                 data.extend_from_slice(&buf[..n]);
-                if n < buf.len() {
-                    break;
-                }
                 if data.len() > 128 * 1024 {
                     break;
+                }
+
+                if expected_total_len.is_none() {
+                    if let Some(header_end) =
+                        data.windows(4).position(|window| window == b"\r\n\r\n")
+                    {
+                        let header_end = header_end + 4;
+                        let header_text = String::from_utf8_lossy(&data[..header_end - 4]);
+                        let content_length = header_text
+                            .lines()
+                            .find_map(|line| line.strip_prefix("Content-Length:"))
+                            .and_then(|value| value.trim().parse::<usize>().ok())
+                            .unwrap_or(0);
+                        expected_total_len = Some(header_end + content_length);
+                    }
+                }
+
+                if let Some(total_len) = expected_total_len {
+                    if data.len() >= total_len {
+                        break;
+                    }
                 }
             }
             Err(err)
                 if err.kind() == std::io::ErrorKind::WouldBlock
                     || err.kind() == std::io::ErrorKind::TimedOut =>
             {
-                break;
+                if let Some(total_len) = expected_total_len {
+                    if data.len() >= total_len {
+                        break;
+                    }
+                }
             }
             Err(_) => break,
         }
@@ -70,7 +94,15 @@ fn parse_http_request(stream: &mut TcpStream) -> (String, String, String) {
     let request_line = lines.next().unwrap_or("GET / HTTP/1.1");
     let mut request_parts = request_line.split_whitespace();
     let method = request_parts.next().unwrap_or("GET").to_string();
-    let path = request_parts.next().unwrap_or("/").to_string();
+    let raw_path = request_parts.next().unwrap_or("/");
+    let path = if let Some((_, without_scheme)) = raw_path.split_once("://") {
+        without_scheme
+            .split_once('/')
+            .map(|(_, p)| format!("/{}", p))
+            .unwrap_or_else(|| "/".to_string())
+    } else {
+        raw_path.to_string()
+    };
 
     (method, path, body_text.to_string())
 }

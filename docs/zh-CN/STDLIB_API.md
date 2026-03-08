@@ -8,7 +8,9 @@
 - 本文档由当前 `ziv-stdlib` 注册表导出。
 - 表中“签名”是标准库元信息签名（用于符号注册与语义检查）。
 - 当前默认运行时可执行全部 117 个函数。
-- 其中 `net` / `crypto` / `utils` 的部分行为为轻量实现，用于接口稳定和回归验证；生产级能力可通过宿主 runtime 替换。
+- `net` 中的 `fetch/http*/download/upload` 通过 `curl` 发起真实请求，返回响应文本或状态。
+- 运行 `net` 相关函数依赖目标环境安装 `curl` 且网络/DNS 可用；失败时 `fetch/http*` 返回错误文本。
+- `crypto` / `utils` 仍保留部分轻量语义实现，用于接口稳定和回归验证；生产级能力可通过宿主 runtime 替换。
 
 ## 目录
 
@@ -142,6 +144,10 @@
 | `writeFile` | `writeFile(path: string, content: string)` | `bool` | Write text to file |
 
 ## net
+
+- `fetch/httpGet/httpPost/httpPut/httpDelete/upload` 返回字符串结果；请求失败时通常返回 `curl` 错误输出。
+- `download` 返回 `bool`（`1` 成功，`0` 失败）。
+- 测试环境使用本地 mock HTTP server 验证行为，避免外网波动影响回归结果。
 
 | 函数 | 签名 | 返回类型 | 描述 |
 |---|---|---|---|
