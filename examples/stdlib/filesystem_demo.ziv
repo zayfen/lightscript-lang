@@ -1,0 +1,15 @@
+// Filesystem builtins demo
+println("filesystem demo");
+readFile("README.md", "utf-8");
+writeFile("tmp.txt", "data");
+appendFile("tmp.txt", "more");
+exists("tmp.txt");
+mkdir("tmp_dir");
+readDir(".");
+removeFile("tmp.txt");
+removeDir("tmp_dir");
+rename("a.txt", "b.txt");
+copyFile("a.txt", "b.txt");
+fileSize("README.md");
+cwd();
+println("filesystem done");

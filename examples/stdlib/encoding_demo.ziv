@@ -1,0 +1,15 @@
+// Encoding builtins demo
+println("encoding demo");
+base64Encode("abc");
+base64Decode("YWJj");
+hexEncode("abc");
+hexDecode("616263");
+urlEncode("a b");
+urlDecode("a%20b");
+utf8Encode("abc");
+utf8Decode(0);
+csvEncode(0);
+csvDecode("a,b");
+queryStringify(0);
+queryParse("a=1");
+println("encoding done");

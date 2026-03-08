@@ -6,7 +6,7 @@ pub mod semantic;
 pub mod ir;
 pub mod codegen;
 pub mod compiler;
-pub mod stdlib;
+pub use ziv_stdlib as stdlib;
 
 pub use lexer::{Lexer, Token};
 pub use parser::Parser;

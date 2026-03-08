@@ -1366,7 +1366,12 @@ dependencies = [
  "thiserror",
  "tracing",
  "tracing-subscriber",
+ "ziv-stdlib",
 ]
+
+[[package]]
+name = "ziv-stdlib"
+version = "0.1.0"
 
 [[package]]
 name = "zmij"

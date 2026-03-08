@@ -1,0 +1,13 @@
+// Network builtins demo
+println("net demo");
+fetch("https://example.com");
+httpGet("https://example.com");
+httpPost("https://example.com/api", "body");
+httpPut("https://example.com/api", "body");
+httpDelete("https://example.com/api");
+download("https://example.com/file", "out.bin");
+upload("https://example.com/upload", "out.bin");
+websocketConnect("wss://example.com/ws");
+dnsLookup("example.com");
+ping("example.com");
+println("net done");

@@ -6,8 +6,13 @@ authors = ["Zayfen <zayfen@example.com>"]
 description = "Ziv - A modern systems programming language that compiles to native ELF executables"
 license = "MIT OR Apache-2.0"
 
+[workspace]
+members = ["crates/ziv-stdlib"]
+resolver = "2"
+
 [dependencies]
 getrandom = "0.2"
+ziv-stdlib = { path = "crates/ziv-stdlib" }
 
 # Lexer generator
 logos = "0.14"

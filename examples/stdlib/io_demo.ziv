@@ -1,0 +1,12 @@
+// IO builtins demo
+println("io demo");
+print(1);
+println(2);
+read();
+eprint("err");
+eprintln("err line");
+input("prompt> ");
+readAll();
+printf("%d", 10);
+flush();
+println("io done");

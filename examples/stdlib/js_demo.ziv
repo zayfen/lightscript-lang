@@ -1,0 +1,21 @@
+// JavaScript-style builtins demo
+println("js demo");
+parseInt("10", 10);
+parseFloat("3.14");
+isNaN(0);
+isFinite(1);
+Number("12");
+String(12);
+Boolean(1);
+jsonParse("{}");
+jsonStringify(1);
+includes("abc", "a");
+indexOf("abc", "b");
+startsWith("abc", "a");
+endsWith("abc", "c");
+split("a,b", ",");
+replace("abc", "a", "x");
+map(0, 0);
+filter(0, 0);
+reduce(0, 0, 0);
+println("js done");

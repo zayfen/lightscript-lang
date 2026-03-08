@@ -1,0 +1,15 @@
+// Crypto builtins demo
+println("crypto demo");
+md5("abc");
+sha1("abc");
+sha256("abc");
+sha512("abc");
+hmacSha256("abc", "key");
+pbkdf2("password", "salt", 1000);
+encryptAES("hello", "secret");
+decryptAES("cipher", "secret");
+sign("message", "private");
+verify("message", "signature", "public");
+randomBytes(16);
+randomUUID();
+println("crypto done");

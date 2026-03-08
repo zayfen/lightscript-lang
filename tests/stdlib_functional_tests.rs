@@ -10,56 +10,149 @@ fn parse(source: &str) -> ziv::parser::ast::Program {
     parser.parse().unwrap()
 }
 
+fn literal_for_param_type(ty: &str) -> &'static str {
+    match ty {
+        "string" => "\"x\"",
+        "i64" | "f64" | "int" | "number" => "1",
+        "bool" => "1",
+        "array" | "function" | "any" | "char" => "0",
+        _ => "0",
+    }
+}
+
+fn build_stdlib_call_source() -> String {
+    let stdlib = Stdlib::new();
+    let mut funcs = stdlib.all_functions();
+    funcs.sort_by(|a, b| a.name.cmp(&b.name));
+
+    funcs
+        .into_iter()
+        .map(|func| {
+            let args = func
+                .params
+                .iter()
+                .map(|param| literal_for_param_type(&param.ty))
+                .collect::<Vec<_>>()
+                .join(", ");
+            format!("{}({});", func.name, args)
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
 #[test]
 fn test_stdlib_registry_surface_is_complete() {
     let stdlib = Stdlib::new();
     let expected = [
-        "print", "println", "read", "eprint", "eprintln", "abs", "min", "max", "sqrt", "pow",
-        "floor", "ceil", "round", "strlen", "concat", "substr", "char_at", "to_upper",
-        "to_lower", "trim", "contains", "push", "pop", "arrlen", "get", "set", "first", "last",
+        "print",
+        "println",
+        "read",
+        "eprint",
+        "eprintln",
+        "input",
+        "readAll",
+        "printf",
+        "flush",
+        "abs",
+        "min",
+        "max",
+        "sqrt",
+        "pow",
+        "floor",
+        "ceil",
+        "round",
+        "strlen",
+        "concat",
+        "substr",
+        "char_at",
+        "to_upper",
+        "to_lower",
+        "trim",
+        "contains",
+        "push",
+        "pop",
+        "arrlen",
+        "get",
+        "set",
+        "first",
+        "last",
         "reverse",
+        "parseInt",
+        "parseFloat",
+        "isNaN",
+        "isFinite",
+        "Number",
+        "String",
+        "Boolean",
+        "jsonParse",
+        "jsonStringify",
+        "includes",
+        "indexOf",
+        "startsWith",
+        "endsWith",
+        "split",
+        "replace",
+        "map",
+        "filter",
+        "reduce",
+        "readFile",
+        "writeFile",
+        "appendFile",
+        "exists",
+        "mkdir",
+        "readDir",
+        "removeFile",
+        "removeDir",
+        "rename",
+        "copyFile",
+        "fileSize",
+        "cwd",
+        "fetch",
+        "httpGet",
+        "httpPost",
+        "httpPut",
+        "httpDelete",
+        "download",
+        "upload",
+        "websocketConnect",
+        "dnsLookup",
+        "ping",
+        "md5",
+        "sha1",
+        "sha256",
+        "sha512",
+        "hmacSha256",
+        "pbkdf2",
+        "encryptAES",
+        "decryptAES",
+        "sign",
+        "verify",
+        "randomBytes",
+        "randomUUID",
+        "base64Encode",
+        "base64Decode",
+        "hexEncode",
+        "hexDecode",
+        "urlEncode",
+        "urlDecode",
+        "utf8Encode",
+        "utf8Decode",
+        "csvEncode",
+        "csvDecode",
+        "queryStringify",
+        "queryParse",
     ];
 
     for name in expected {
         assert!(stdlib.is_builtin(name), "missing builtin: {name}");
     }
+    assert_eq!(expected.len(), stdlib.all_functions().len());
 }
 
 #[test]
 fn test_semantic_accepts_cross_module_stdlib_calls() {
-    let program = parse(
-        r#"
-        print(1);
-        println(2);
-        read();
-        eprint(3);
-        eprintln(4);
-        abs(5);
-        min(1, 2);
-        max(1, 2);
-        sqrt(9);
-        pow(2, 10);
-        floor(7);
-        ceil(8);
-        round(9);
-        strlen("abc");
-        concat("a", "b");
-        substr("abc", 0, 2);
-        char_at("abc", 1);
-        to_upper("abc");
-        to_lower("ABC");
-        trim(" x ");
-        contains("abc", "b");
-        push(0, 1);
-        pop(0);
-        arrlen(0);
-        get(0, 0);
-        set(0, 0, 1);
-        first(0);
-        last(0);
-        reverse(0);
-        "#,
-    );
+    let source = build_stdlib_call_source();
+    let program = parse(&source);
 
     let mut analyzer = SemanticAnalyzer::new();
     assert!(analyzer.analyze(&program).is_ok());
@@ -159,18 +252,10 @@ fn test_compiler_can_compile_program_with_stdlib_calls() {
     let output = dir.path().join("stdlib_ok");
     let output_str = output.to_string_lossy().to_string();
 
+    let source = build_stdlib_call_source();
+
     let mut compiler = Compiler::new().output(&output_str);
-    compiler
-        .compile(
-            r#"
-            print(1);
-            println(2);
-            abs(3);
-            strlen("abc");
-            push(0, 1);
-            "#,
-        )
-        .unwrap();
+    compiler.compile(&source).unwrap();
 
     assert!(output.exists());
 }
