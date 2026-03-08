@@ -29,7 +29,8 @@ impl CraneliftGenerator {
         flag_builder.set("use_colocated_libcalls", "false").unwrap();
         flag_builder.set("is_pic", "true").unwrap();
 
-        let isa_builder = with_context(cranelift_native::builder(), "Failed to create ISA builder")?;
+        let isa_builder =
+            with_context(cranelift_native::builder(), "Failed to create ISA builder")?;
 
         let flags = settings::Flags::new(flag_builder);
         let isa = with_context(isa_builder.finish(flags), "Failed to create ISA")?;
@@ -277,7 +278,9 @@ impl CraneliftGenerator {
 
             IRInstruction::Label(name) => {
                 // Get or create the block
-                let block = block_map.entry(name.clone()).or_insert_with(|| builder.create_block());
+                let block = block_map
+                    .entry(name.clone())
+                    .or_insert_with(|| builder.create_block());
                 // Switch to this block
                 builder.switch_to_block(*block);
                 Ok(())
@@ -285,7 +288,9 @@ impl CraneliftGenerator {
 
             IRInstruction::Jump(label) => {
                 // Get or create the target block
-                let block = block_map.entry(label.clone()).or_insert_with(|| builder.create_block());
+                let block = block_map
+                    .entry(label.clone())
+                    .or_insert_with(|| builder.create_block());
                 builder.ins().jump(*block, &[]);
                 Ok(())
             }
@@ -300,8 +305,12 @@ impl CraneliftGenerator {
                 let cmp = builder.ins().icmp(IntCC::NotEqual, cond_val, zero);
 
                 // Create blocks for targets if they don't exist
-                let true_block = *block_map.entry(true_label.clone()).or_insert_with(|| builder.create_block());
-                let false_block = *block_map.entry(false_label.clone()).or_insert_with(|| builder.create_block());
+                let true_block = *block_map
+                    .entry(true_label.clone())
+                    .or_insert_with(|| builder.create_block());
+                let false_block = *block_map
+                    .entry(false_label.clone())
+                    .or_insert_with(|| builder.create_block());
 
                 builder.ins().brif(cmp, true_block, &[], false_block, &[]);
                 Ok(())
@@ -337,11 +346,14 @@ impl CraneliftGenerator {
                 sig.returns.push(AbiParam::new(types::I64));
 
                 // Try to get existing function declaration first
-                let func_id = if let Some(cranelift_module::FuncOrDataId::Func(id)) = self.module.get_name(function) {
+                let func_id = if let Some(cranelift_module::FuncOrDataId::Func(id)) =
+                    self.module.get_name(function)
+                {
                     id
                 } else {
                     with_context(
-                        self.module.declare_function(function, Linkage::Import, &sig),
+                        self.module
+                            .declare_function(function, Linkage::Import, &sig),
                         &format!("Failed to declare function '{}'", function),
                     )?
                 };
@@ -357,6 +369,41 @@ impl CraneliftGenerator {
                     builder.def_var(var, val);
                     variables.insert(dest.clone(), var);
                 }
+                Ok(())
+            }
+            IRInstruction::CallIndirect {
+                result,
+                function,
+                args,
+            } => {
+                let function_value = self.load_value(function, builder, variables, ptr_type)?;
+                let arg_values: Vec<Value> = args
+                    .iter()
+                    .map(|arg| self.load_value(arg, builder, variables, ptr_type))
+                    .collect::<Result<Vec<_>, _>>()?;
+
+                let mut sig = Signature::new(CallConv::SystemV);
+                for arg in args {
+                    match arg {
+                        IRValue::Str(_) => sig.params.push(AbiParam::new(ptr_type)),
+                        _ => sig.params.push(AbiParam::new(types::I64)),
+                    }
+                }
+                sig.returns.push(AbiParam::new(types::I64));
+                let sig_ref = builder.import_signature(sig);
+                let call_result = builder
+                    .ins()
+                    .call_indirect(sig_ref, function_value, &arg_values);
+
+                if let Some(dest) = result {
+                    let val = builder.inst_results(call_result)[0];
+                    let var = Variable::from_u32(*var_counter);
+                    *var_counter += 1;
+                    builder.declare_var(var, types::I64);
+                    builder.def_var(var, val);
+                    variables.insert(dest.clone(), var);
+                }
+
                 Ok(())
             }
         }
@@ -382,6 +429,22 @@ impl CraneliftGenerator {
                 let data_id = self.intern_string_data(s)?;
                 let local_id = self.module.declare_data_in_func(data_id, builder.func);
                 Ok(builder.ins().symbol_value(ptr_type, local_id))
+            }
+            IRValue::Func(name) => {
+                let mut sig = Signature::new(CallConv::SystemV);
+                sig.returns.push(AbiParam::new(types::I64));
+                let func_id = if let Some(cranelift_module::FuncOrDataId::Func(id)) =
+                    self.module.get_name(name)
+                {
+                    id
+                } else {
+                    with_context(
+                        self.module.declare_function(name, Linkage::Import, &sig),
+                        &format!("Failed to declare function '{}'", name),
+                    )?
+                };
+                let func_ref = self.module.declare_func_in_func(func_id, builder.func);
+                Ok(builder.ins().func_addr(ptr_type, func_ref))
             }
         }
     }
@@ -485,7 +548,10 @@ mod tests {
 
     #[test]
     fn test_translate_type() {
-        assert_eq!(CraneliftGenerator::translate_type(&IRType::I64), Some(types::I64));
+        assert_eq!(
+            CraneliftGenerator::translate_type(&IRType::I64),
+            Some(types::I64)
+        );
         assert_eq!(CraneliftGenerator::translate_type(&IRType::Void), None);
     }
 
@@ -561,12 +627,14 @@ mod tests {
             true_label: "t".to_string(),
             false_label: "f".to_string(),
         });
-        func.instructions.push(IRInstruction::Label("t".to_string()));
+        func.instructions
+            .push(IRInstruction::Label("t".to_string()));
         func.instructions.push(IRInstruction::Ret {
             ty: IRType::I64,
             value: Some(IRValue::Const(1)),
         });
-        func.instructions.push(IRInstruction::Label("f".to_string()));
+        func.instructions
+            .push(IRInstruction::Label("f".to_string()));
         func.instructions.push(IRInstruction::Ret {
             ty: IRType::I64,
             value: Some(IRValue::Const(0)),
@@ -595,15 +663,9 @@ mod tests {
             value: IRValue::Const(3),
         });
 
-        for (i, op) in [
-            CmpOp::Ne,
-            CmpOp::Lt,
-            CmpOp::Le,
-            CmpOp::Gt,
-            CmpOp::Ge,
-        ]
-        .into_iter()
-        .enumerate()
+        for (i, op) in [CmpOp::Ne, CmpOp::Lt, CmpOp::Le, CmpOp::Gt, CmpOp::Ge]
+            .into_iter()
+            .enumerate()
         {
             func.instructions.push(IRInstruction::Cmp {
                 dest: format!("cmp{}", i),
@@ -613,8 +675,10 @@ mod tests {
             });
         }
 
-        func.instructions.push(IRInstruction::Jump("end".to_string()));
-        func.instructions.push(IRInstruction::Label("end".to_string()));
+        func.instructions
+            .push(IRInstruction::Jump("end".to_string()));
+        func.instructions
+            .push(IRInstruction::Label("end".to_string()));
         func.instructions.push(IRInstruction::Ret {
             ty: IRType::I64,
             value: Some(IRValue::Const(0)),
@@ -681,5 +745,50 @@ mod tests {
             .compile_to_object(&module)
             .unwrap_err();
         assert!(err.contains("Undefined variable: missing"));
+    }
+
+    #[test]
+    fn test_compile_function_value_and_indirect_call() {
+        let mut inc = IRFunction::new("inc".to_string(), IRType::I64);
+        inc.params.push(("arg0".to_string(), IRType::I64));
+        inc.instructions.push(IRInstruction::Ret {
+            ty: IRType::I64,
+            value: Some(IRValue::Var("arg0".to_string())),
+        });
+
+        let mut apply = IRFunction::new("apply".to_string(), IRType::I64);
+        apply.params.push(("arg0".to_string(), IRType::I64)); // function pointer
+        apply.params.push(("arg1".to_string(), IRType::I64)); // value
+        apply.instructions.push(IRInstruction::CallIndirect {
+            result: Some("r".to_string()),
+            function: IRValue::Var("arg0".to_string()),
+            args: vec![IRValue::Var("arg1".to_string())],
+        });
+        apply.instructions.push(IRInstruction::Ret {
+            ty: IRType::I64,
+            value: Some(IRValue::Var("r".to_string())),
+        });
+
+        let mut main = IRFunction::new("main".to_string(), IRType::I64);
+        main.instructions.push(IRInstruction::Call {
+            result: Some("ret".to_string()),
+            function: "apply".to_string(),
+            args: vec![IRValue::Func("inc".to_string()), IRValue::Const(42)],
+        });
+        main.instructions.push(IRInstruction::Ret {
+            ty: IRType::I64,
+            value: Some(IRValue::Var("ret".to_string())),
+        });
+
+        let mut module = IRModule::new();
+        module.add_function(inc);
+        module.add_function(apply);
+        module.add_function(main);
+
+        let obj = CraneliftGenerator::new()
+            .unwrap()
+            .compile_to_object(&module)
+            .unwrap();
+        assert!(!obj.is_empty());
     }
 }

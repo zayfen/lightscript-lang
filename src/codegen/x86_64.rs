@@ -1,7 +1,7 @@
 //! x86-64 assembly code generator
 
 use crate::codegen::CodeGenerator;
-use crate::ir::{IRFunction, IRInstruction, IRModule, IRType, IRValue};
+use crate::ir::{IRFunction, IRInstruction, IRModule, IRValue};
 use std::collections::HashMap;
 
 pub struct X86_64Generator {
@@ -111,6 +111,13 @@ impl X86_64Generator {
                             }
                         }
                         IRValue::Str(_) => format!("    movq $0, -{}(%rbp)\n", offset),
+                        IRValue::Func(name) => {
+                            format!(
+                                "    leaq {}(%rip), %rax\n    movq %rax, -{}(%rbp)\n",
+                                Self::symbol_name(name),
+                                offset
+                            )
+                        }
                     }
                 } else {
                     String::new()
@@ -148,6 +155,7 @@ impl X86_64Generator {
                         }
                     }
                     IRValue::Str(_) => code.push_str("    movq $0, %rax\n"),
+                    IRValue::Func(_) => code.push_str("    movq $0, %rax\n"),
                 }
 
                 // Add rhs
@@ -161,6 +169,7 @@ impl X86_64Generator {
                         }
                     }
                     IRValue::Str(_) => code.push_str("    addq $0, %rax\n"),
+                    IRValue::Func(_) => code.push_str("    addq $0, %rax\n"),
                 }
 
                 // Store result
@@ -183,6 +192,7 @@ impl X86_64Generator {
                         }
                     }
                     IRValue::Str(_) => code.push_str("    movq $0, %rax\n"),
+                    IRValue::Func(_) => code.push_str("    movq $0, %rax\n"),
                 }
 
                 match rhs {
@@ -195,6 +205,7 @@ impl X86_64Generator {
                         }
                     }
                     IRValue::Str(_) => code.push_str("    subq $0, %rax\n"),
+                    IRValue::Func(_) => code.push_str("    subq $0, %rax\n"),
                 }
 
                 code.push_str(&format!("    movq %rax, -{}(%rbp)\n", dest_offset));
@@ -216,6 +227,7 @@ impl X86_64Generator {
                         }
                     }
                     IRValue::Str(_) => code.push_str("    movq $0, %rax\n"),
+                    IRValue::Func(_) => code.push_str("    movq $0, %rax\n"),
                 }
 
                 match rhs {
@@ -228,6 +240,7 @@ impl X86_64Generator {
                         }
                     }
                     IRValue::Str(_) => code.push_str("    imulq $0, %rax\n"),
+                    IRValue::Func(_) => code.push_str("    imulq $0, %rax\n"),
                 }
 
                 code.push_str(&format!("    movq %rax, -{}(%rbp)\n", dest_offset));
@@ -249,6 +262,7 @@ impl X86_64Generator {
                         }
                     }
                     IRValue::Str(_) => code.push_str("    movq $0, %rax\n"),
+                    IRValue::Func(_) => code.push_str("    movq $0, %rax\n"),
                 }
 
                 code.push_str("    cqto\n"); // Sign extend
@@ -264,6 +278,10 @@ impl X86_64Generator {
                         }
                     }
                     IRValue::Str(_) => {
+                        code.push_str("    movq $1, %rbx\n");
+                        code.push_str("    idivq %rbx\n");
+                    }
+                    IRValue::Func(_) => {
                         code.push_str("    movq $1, %rbx\n");
                         code.push_str("    idivq %rbx\n");
                     }
@@ -287,6 +305,7 @@ impl X86_64Generator {
                             }
                         }
                         IRValue::Str(_) => "    xorq %rax, %rax\n".to_string(),
+                        IRValue::Func(_) => "    xorq %rax, %rax\n".to_string(),
                     }
                 } else {
                     "    xorq %rax, %rax\n".to_string()
@@ -309,6 +328,7 @@ impl X86_64Generator {
                         }
                     }
                     IRValue::Str(_) => code.push_str("    movq $0, %rax\n"),
+                    IRValue::Func(_) => code.push_str("    movq $0, %rax\n"),
                 }
 
                 // Compare with rhs
@@ -322,6 +342,7 @@ impl X86_64Generator {
                         }
                     }
                     IRValue::Str(_) => code.push_str("    cmpq $0, %rax\n"),
+                    IRValue::Func(_) => code.push_str("    cmpq $0, %rax\n"),
                 }
 
                 // Set result based on comparison operator
@@ -341,7 +362,11 @@ impl X86_64Generator {
                 code
             }
 
-            IRInstruction::Call { result, function, args } => {
+            IRInstruction::Call {
+                result,
+                function,
+                args,
+            } => {
                 let mut code = String::new();
 
                 // x86-64 calling convention: args in rdi, rsi, rdx, rcx, r8, r9
@@ -357,11 +382,21 @@ impl X86_64Generator {
                             }
                             IRValue::Var(name) => {
                                 if let Some(offset) = self.get_offset(name) {
-                                    code.push_str(&format!("    movq -{}(%rbp), {}\n", offset, arg_regs[i]));
+                                    code.push_str(&format!(
+                                        "    movq -{}(%rbp), {}\n",
+                                        offset, arg_regs[i]
+                                    ));
                                 }
                             }
                             IRValue::Str(_) => {
                                 code.push_str(&format!("    movq $0, {}\n", arg_regs[i]));
+                            }
+                            IRValue::Func(name) => {
+                                code.push_str(&format!(
+                                    "    leaq {}(%rip), {}\n",
+                                    Self::symbol_name(name),
+                                    arg_regs[i]
+                                ));
                             }
                         }
                     }
@@ -388,6 +423,9 @@ impl X86_64Generator {
 
                 code
             }
+            IRInstruction::CallIndirect { .. } => {
+                "    # indirect calls are only supported in the Cranelift backend\n".to_string()
+            }
 
             IRInstruction::Label(name) => format!("{}:\n", name),
 
@@ -409,6 +447,9 @@ impl X86_64Generator {
                         code.push_str(&format!("    cmpq $0, ${}\n", n));
                     }
                     IRValue::Str(_) => {
+                        code.push_str("    cmpq $0, $1\n");
+                    }
+                    IRValue::Func(_) => {
                         code.push_str("    cmpq $0, $1\n");
                     }
                 }

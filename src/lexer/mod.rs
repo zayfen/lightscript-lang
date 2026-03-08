@@ -8,7 +8,7 @@ pub enum Token {
     String(String),
     Boolean(bool),
     Char(char),
-    
+
     // Identifiers and Keywords
     Identifier(String),
     Let,
@@ -27,7 +27,7 @@ pub enum Token {
     False,
     Null,
     Undefined,
-    
+
     // Operators
     Plus,
     PlusEqual,
@@ -45,7 +45,7 @@ pub enum Token {
     GreaterEqual,
     And,
     Or,
-    
+
     // Delimiters
     LeftParen,
     RightParen,
@@ -59,7 +59,7 @@ pub enum Token {
     Dot,
     Arrow,
     FatArrow,
-    
+
     // Special
     EOF,
     Unknown(char),
@@ -92,13 +92,13 @@ impl Lexer {
             position: 0,
         }
     }
-    
+
     pub fn tokenize(&mut self) -> Result<Vec<Token>, String> {
         let mut tokens = Vec::new();
-        
+
         while self.position < self.input.len() {
             let ch = self.current_char();
-            
+
             match ch {
                 ' ' | '\t' | '\n' | '\r' => {
                     self.advance();
@@ -121,7 +121,7 @@ impl Lexer {
                         tokens.push(Token::Plus);
                     }
                 }
-                '-' => { 
+                '-' => {
                     self.advance();
                     if self.current_char() == '>' {
                         tokens.push(Token::Arrow);
@@ -130,7 +130,10 @@ impl Lexer {
                         tokens.push(Token::Minus);
                     }
                 }
-                '*' => { tokens.push(Token::Star); self.advance(); }
+                '*' => {
+                    tokens.push(Token::Star);
+                    self.advance();
+                }
                 '/' => {
                     if self.peek_char() == '/' {
                         self.skip_line_comment();
@@ -139,7 +142,10 @@ impl Lexer {
                         self.advance();
                     }
                 }
-                '%' => { tokens.push(Token::Percent); self.advance(); }
+                '%' => {
+                    tokens.push(Token::Percent);
+                    self.advance();
+                }
                 '=' => {
                     self.advance();
                     if self.current_char() == '=' {
@@ -193,31 +199,61 @@ impl Lexer {
                         self.advance();
                     }
                 }
-                '(' => { tokens.push(Token::LeftParen); self.advance(); }
-                ')' => { tokens.push(Token::RightParen); self.advance(); }
-                '{' => { tokens.push(Token::LeftBrace); self.advance(); }
-                '}' => { tokens.push(Token::RightBrace); self.advance(); }
-                '[' => { tokens.push(Token::LeftBracket); self.advance(); }
-                ']' => { tokens.push(Token::RightBracket); self.advance(); }
-                ',' => { tokens.push(Token::Comma); self.advance(); }
-                ';' => { tokens.push(Token::Semicolon); self.advance(); }
-                ':' => { tokens.push(Token::Colon); self.advance(); }
-                '.' => { tokens.push(Token::Dot); self.advance(); }
+                '(' => {
+                    tokens.push(Token::LeftParen);
+                    self.advance();
+                }
+                ')' => {
+                    tokens.push(Token::RightParen);
+                    self.advance();
+                }
+                '{' => {
+                    tokens.push(Token::LeftBrace);
+                    self.advance();
+                }
+                '}' => {
+                    tokens.push(Token::RightBrace);
+                    self.advance();
+                }
+                '[' => {
+                    tokens.push(Token::LeftBracket);
+                    self.advance();
+                }
+                ']' => {
+                    tokens.push(Token::RightBracket);
+                    self.advance();
+                }
+                ',' => {
+                    tokens.push(Token::Comma);
+                    self.advance();
+                }
+                ';' => {
+                    tokens.push(Token::Semicolon);
+                    self.advance();
+                }
+                ':' => {
+                    tokens.push(Token::Colon);
+                    self.advance();
+                }
+                '.' => {
+                    tokens.push(Token::Dot);
+                    self.advance();
+                }
                 _ => {
                     tokens.push(Token::Unknown(ch));
                     self.advance();
                 }
             }
         }
-        
+
         tokens.push(Token::EOF);
         Ok(tokens)
     }
-    
+
     fn current_char(&self) -> char {
         *self.input.get(self.position).unwrap_or(&'\0')
     }
-    
+
     fn advance(&mut self) {
         self.position += 1;
     }
@@ -235,11 +271,11 @@ impl Lexer {
             self.advance();
         }
     }
-    
+
     fn read_number(&mut self) -> Result<Token, String> {
         let mut num_str = String::new();
         let mut is_float = false;
-        
+
         while self.position < self.input.len() {
             let ch = self.current_char();
             if ch.is_ascii_digit() {
@@ -253,7 +289,7 @@ impl Lexer {
                 break;
             }
         }
-        
+
         if is_float {
             // The lexer only constructs float strings from digits plus one dot,
             // which always parses as f64 (possibly +/-inf).
@@ -262,15 +298,16 @@ impl Lexer {
                 .expect("lexer built an invalid float literal");
             Ok(Token::Float(value))
         } else {
-            num_str.parse::<i64>()
+            num_str
+                .parse::<i64>()
                 .map(Token::Number)
                 .map_err(|_| format!("Invalid number: {}", num_str))
         }
     }
-    
+
     fn read_identifier(&mut self) -> Token {
         let mut ident = String::new();
-        
+
         while self.position < self.input.len() {
             let ch = self.current_char();
             if ch.is_alphanumeric() || ch == '_' || ch == '$' {
@@ -280,7 +317,7 @@ impl Lexer {
                 break;
             }
         }
-        
+
         match ident.as_str() {
             "let" => Token::Let,
             "const" => Token::Const,
@@ -301,16 +338,16 @@ impl Lexer {
             _ => Token::Identifier(ident),
         }
     }
-    
+
     fn read_string(&mut self) -> Result<Token, String> {
         let quote = self.current_char();
         self.advance(); // Skip opening quote
-        
+
         let mut s = String::new();
-        
+
         while self.position < self.input.len() {
             let ch = self.current_char();
-            
+
             if ch == quote {
                 self.advance(); // Skip closing quote
                 return Ok(Token::String(s));
@@ -334,7 +371,7 @@ impl Lexer {
                 self.advance();
             }
         }
-        
+
         Err("Unterminated string".to_string())
     }
 }
@@ -342,7 +379,7 @@ impl Lexer {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_basic_tokens() {
         let mut lexer = Lexer::new("let x = 42;");
@@ -353,14 +390,14 @@ mod tests {
         assert_eq!(tokens[3], Token::Number(42));
         assert_eq!(tokens[4], Token::Semicolon);
     }
-    
+
     #[test]
     fn test_string_literal() {
         let mut lexer = Lexer::new("\"hello world\"");
         let tokens = lexer.tokenize().unwrap();
         assert_eq!(tokens[0], Token::String("hello world".to_string()));
     }
-    
+
     #[test]
     fn test_operators() {
         let mut lexer = Lexer::new("+ += - * / % == != < <= > >=");
@@ -372,7 +409,7 @@ mod tests {
         assert_eq!(tokens[4], Token::Slash);
         assert_eq!(tokens[5], Token::Percent);
     }
-    
+
     #[test]
     fn test_keywords() {
         let mut lexer = Lexer::new("let const function if else while for");
@@ -434,7 +471,10 @@ mod tests {
 
         assert_eq!(format!("{}", Token::Number(7)), "Number(7)");
         assert_eq!(format!("{}", Token::Float(1.5)), "Float(1.5)");
-        assert_eq!(format!("{}", Token::String("x".to_string())), "String(\"x\")");
+        assert_eq!(
+            format!("{}", Token::String("x".to_string())),
+            "String(\"x\")"
+        );
         assert_eq!(format!("{}", Token::Char('x')), "Char('x')");
         assert_eq!(format!("{}", Token::Boolean(true)), "Boolean(true)");
         assert_eq!(
@@ -456,7 +496,8 @@ mod tests {
 
     #[test]
     fn test_additional_keywords_and_aliases() {
-        let mut lexer = Lexer::new("class struct break continue null undefined fn return true false");
+        let mut lexer =
+            Lexer::new("class struct break continue null undefined fn return true false");
         let tokens = lexer.tokenize().unwrap();
         assert_eq!(tokens[0], Token::Class);
         assert_eq!(tokens[1], Token::Struct);

@@ -1,11 +1,11 @@
 // String builtins demo
 println("string demo");
-strlen("abc");
-concat("a", "b");
-substr("abcdef", 1, 3);
-char_at("abc", 1);
-to_upper("abc");
-to_lower("ABC");
-trim("  x  ");
-contains("abc", "b");
+println(strlen("abc"));
+println(strlen(concat("a", "b")));
+println(strlen(substr("abcdef", 1, 3)));
+println(char_at("abc", 1));
+println(char_at(to_upper("az"), 0));
+println(char_at(to_lower("AZ"), 1));
+println(strlen(trim("  x  ")));
+println(contains("abc", "b"));
 println("string done");

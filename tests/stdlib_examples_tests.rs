@@ -30,16 +30,25 @@ fn stdlib_example_files() -> Vec<PathBuf> {
 fn expected_outputs(stem: &str) -> (&'static str, &'static str) {
     match stem {
         "hello" => ("Hello, Ziv!\n42\n30\n", ""),
-        "io_demo" => ("io demo\n12\nio done\n", ""),
-        "math_demo" => ("math demo\nmath done\n", ""),
-        "string_demo" => ("string demo\nstring done\n", ""),
-        "array_demo" => ("array demo\narray done\n", ""),
-        "container_demo" => ("container demo\ncontainer done\n", ""),
-        "js_demo" => ("js demo\njs done\n", ""),
-        "filesystem_demo" => ("filesystem demo\nfilesystem done\n", ""),
-        "net_demo" => ("net demo\nnet done\n", ""),
-        "crypto_demo" => ("crypto demo\ncrypto done\n", ""),
-        "encoding_demo" => ("encoding demo\nencoding done\n", ""),
+        "io_demo" => ("io demo\n12\n0\nprompt> 0\n0\nfmt:10\n1\nio done\n", "err line\n"),
+        "math_demo" => ("math demo\n10\n3\n7\n9\n1024\n5\n6\n7\nmath done\n", ""),
+        "string_demo" => ("string demo\n3\n2\n3\n98\n65\n122\n1\n1\nstring done\n", ""),
+        "array_demo" => ("array demo\n3\n10\n30\n20\n99\n30\n2\n99\n10\narray done\n", ""),
+        "container_demo" => (
+            "container demo\n0\n3\n15\n1\n10\n99\n20\n1\n0\n2\n100\n1\n200\n0\n300\n2\n2\n0\ncontainer done\n",
+            "",
+        ),
+        "js_demo" => (
+            "js demo\n42\n3\n0\n1\n12\n3\n0\n7\n2\n1\n1\n1\n1\n3\n2\n3\n1\n5\n3\n0\n4\n2\n14\njs done\n",
+            "",
+        ),
+        "filesystem_demo" => (
+            "filesystem demo\n1\n1\n3\n1\n5\n5\n1\n5\n1\n1\n1\n0\n1\n0\n1\n1\n0\n1\n1\nfilesystem done\n",
+            "",
+        ),
+        "net_demo" => ("net demo\n5\n5\n8\n7\n8\n1\n1\n13\n1\n1\n1\n1\nnet done\n", ""),
+        "crypto_demo" => ("crypto demo\n32\n40\n64\n128\n64\n64\n16\n5\n64\n1\n32\n36\ncrypto done\n", ""),
+        "encoding_demo" => ("encoding demo\n4\n3\n6\n3\n5\n3\n3\n3\n8\n3\n8\n2\nencoding done\n", ""),
         _ => ("", ""),
     }
 }

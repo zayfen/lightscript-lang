@@ -179,14 +179,17 @@ fn test_semantic_accepts_cross_module_stdlib_calls() {
 }
 
 #[test]
-fn test_ir_builder_lowers_print_calls_and_skips_other_builtins() {
+fn test_ir_builder_lowers_runtime_backed_stdlib_calls() {
     let program = parse(
         r#"
         print(1);
         println("x");
         abs(2);
-        strlen("abc");
         push(0, 1);
+        parseInt("42", 10);
+        flush();
+        strlen("abc");
+        vectorPush(vectorNew(), 1);
         "#,
     );
 
@@ -205,15 +208,43 @@ fn test_ir_builder_lowers_print_calls_and_skips_other_builtins() {
         IRInstruction::Call { function, .. } => function == "ziv_println_str",
         _ => false,
     });
-    let has_skipped_builtin_call = main.instructions.iter().any(|instr| match instr {
-        IRInstruction::Call { function, .. } => {
-            matches!(function.as_str(), "abs" | "strlen" | "push")
-        }
+    let has_direct_abs_call = main.instructions.iter().any(|instr| match instr {
+        IRInstruction::Call { function, .. } => matches!(function.as_str(), "abs"),
+        _ => false,
+    });
+    let has_runtime_abs = main.instructions.iter().any(|instr| match instr {
+        IRInstruction::Call { function, .. } => function == "ziv_abs",
+        _ => false,
+    });
+    let has_runtime_strlen = main.instructions.iter().any(|instr| match instr {
+        IRInstruction::Call { function, .. } => function == "strlen",
+        _ => false,
+    });
+    let has_container_runtime_call = main.instructions.iter().any(|instr| match instr {
+        IRInstruction::Call { function, .. } => function == "vectorPush",
+        _ => false,
+    });
+    let has_array_runtime_call = main.instructions.iter().any(|instr| match instr {
+        IRInstruction::Call { function, .. } => function == "ziv_array_push",
+        _ => false,
+    });
+    let has_js_runtime_call = main.instructions.iter().any(|instr| match instr {
+        IRInstruction::Call { function, .. } => function == "ziv_parse_int",
+        _ => false,
+    });
+    let has_io_runtime_call = main.instructions.iter().any(|instr| match instr {
+        IRInstruction::Call { function, .. } => function == "ziv_flush",
         _ => false,
     });
     assert!(has_runtime_print);
     assert!(has_runtime_println_str);
-    assert!(!has_skipped_builtin_call);
+    assert!(!has_direct_abs_call);
+    assert!(has_runtime_abs);
+    assert!(has_runtime_strlen);
+    assert!(has_container_runtime_call);
+    assert!(has_array_runtime_call);
+    assert!(has_js_runtime_call);
+    assert!(has_io_runtime_call);
 }
 
 #[test]

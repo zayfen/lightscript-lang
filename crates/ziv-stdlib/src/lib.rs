@@ -169,7 +169,9 @@ mod tests {
         let stdlib = Stdlib::new();
         assert!(!stdlib.is_builtin("__missing_builtin__"));
         assert!(stdlib.get("__missing_builtin__").is_none());
-        assert!(stdlib.functions_by_category("__missing_category__").is_empty());
+        assert!(stdlib
+            .functions_by_category("__missing_category__")
+            .is_empty());
     }
 
     #[test]

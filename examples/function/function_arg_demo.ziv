@@ -1,0 +1,11 @@
+// Function parameter demo
+function inc(x: int): int {
+    return x + 1;
+}
+
+function apply(f: function, value: int): int {
+    return f(value);
+}
+
+println(apply(inc, 41));
+println(apply(inc, 42));

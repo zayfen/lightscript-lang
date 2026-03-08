@@ -1,5 +1,5 @@
 use crate::codegen::CodeGenerator;
-use crate::ir::{IRFunction, IRInstruction, IRModule, IRType, IRValue};
+use crate::ir::{IRFunction, IRInstruction, IRModule, IRValue};
 use std::collections::HashMap;
 
 pub struct ARM64Generator {
@@ -31,10 +31,12 @@ impl ARM64Generator {
         self.var_map.get(name).copied()
     }
 
+    #[cfg(test)]
     fn is_arg_var(&self, name: &str) -> bool {
         name.starts_with("arg")
     }
 
+    #[cfg(test)]
     fn load_value(&self, value: &IRValue, dest_reg: &str) -> String {
         match value {
             IRValue::Const(n) => format!("    mov {}, #{}\n", dest_reg, n),
@@ -52,6 +54,7 @@ impl ARM64Generator {
                 }
             }
             IRValue::Str(_) => format!("    mov {}, #0\n", dest_reg),
+            IRValue::Func(_) => format!("    mov {}, #0\n", dest_reg),
         }
     }
 }
@@ -88,10 +91,7 @@ mod tests {
         assert!(gen
             .load_value(&IRValue::Var("arg0".to_string()), "x4")
             .contains("ldr x4"));
-        assert_eq!(
-            gen.load_value(&IRValue::Var("argx".to_string()), "x5"),
-            ""
-        );
+        assert_eq!(gen.load_value(&IRValue::Var("argx".to_string()), "x5"), "");
         assert_eq!(
             gen.load_value(&IRValue::Var("missing".to_string()), "x3"),
             ""
@@ -453,6 +453,9 @@ impl ARM64Generator {
                         IRValue::Str(_) => {
                             format!("    mov x0, #0\n{}", self.generate_store("x0", offset))
                         }
+                        IRValue::Func(_) => {
+                            format!("    mov x0, #0\n{}", self.generate_store("x0", offset))
+                        }
                     }
                 } else {
                     String::new()
@@ -490,6 +493,7 @@ impl ARM64Generator {
                         }
                     }
                     IRValue::Str(_) => code.push_str("    mov x0, #0\n"),
+                    IRValue::Func(_) => code.push_str("    mov x0, #0\n"),
                 }
 
                 match rhs {
@@ -503,6 +507,7 @@ impl ARM64Generator {
                         }
                     }
                     IRValue::Str(_) => code.push_str("    add x0, x0, #0\n"),
+                    IRValue::Func(_) => code.push_str("    add x0, x0, #0\n"),
                 }
 
                 code.push_str(&self.generate_store("x0", dest_offset));
@@ -524,6 +529,7 @@ impl ARM64Generator {
                         }
                     }
                     IRValue::Str(_) => code.push_str("    mov x0, #0\n"),
+                    IRValue::Func(_) => code.push_str("    mov x0, #0\n"),
                 }
 
                 match rhs {
@@ -537,6 +543,7 @@ impl ARM64Generator {
                         }
                     }
                     IRValue::Str(_) => code.push_str("    sub x0, x0, #0\n"),
+                    IRValue::Func(_) => code.push_str("    sub x0, x0, #0\n"),
                 }
 
                 code.push_str(&self.generate_store("x0", dest_offset));
@@ -556,6 +563,7 @@ impl ARM64Generator {
                         }
                     }
                     IRValue::Str(_) => code.push_str("    mov x0, #0\n"),
+                    IRValue::Func(_) => code.push_str("    mov x0, #0\n"),
                 }
 
                 match rhs {
@@ -567,6 +575,7 @@ impl ARM64Generator {
                         }
                     }
                     IRValue::Str(_) => code.push_str("    mul x0, x0, #0\n"),
+                    IRValue::Func(_) => code.push_str("    mul x0, x0, #0\n"),
                 }
 
                 code.push_str(&self.generate_store("x0", dest_offset));
@@ -586,6 +595,7 @@ impl ARM64Generator {
                         }
                     }
                     IRValue::Str(_) => code.push_str("    mov x0, #0\n"),
+                    IRValue::Func(_) => code.push_str("    mov x0, #0\n"),
                 }
 
                 match rhs {
@@ -599,6 +609,7 @@ impl ARM64Generator {
                         }
                     }
                     IRValue::Str(_) => code.push_str("    mov x1, #1\n    sdiv x0, x0, x1\n"),
+                    IRValue::Func(_) => code.push_str("    mov x1, #1\n    sdiv x0, x0, x1\n"),
                 }
 
                 code.push_str(&self.generate_store("x0", dest_offset));
@@ -618,6 +629,7 @@ impl ARM64Generator {
                         }
                     }
                     IRValue::Str(_) => code.push_str("    mov x0, #0\n"),
+                    IRValue::Func(_) => code.push_str("    mov x0, #0\n"),
                 }
 
                 match rhs {
@@ -629,6 +641,7 @@ impl ARM64Generator {
                         }
                     }
                     IRValue::Str(_) => code.push_str("    cmp x0, #0\n"),
+                    IRValue::Func(_) => code.push_str("    cmp x0, #0\n"),
                 }
 
                 let cond = match op {
@@ -668,6 +681,9 @@ impl ARM64Generator {
                             IRValue::Str(_) => {
                                 code.push_str(&format!("    mov {}, #0\n", arg_regs[i]));
                             }
+                            IRValue::Func(_) => {
+                                code.push_str(&format!("    mov {}, #0\n", arg_regs[i]));
+                            }
                         }
                     }
                 }
@@ -682,6 +698,9 @@ impl ARM64Generator {
                 }
 
                 code
+            }
+            IRInstruction::CallIndirect { .. } => {
+                "    // indirect calls are only supported in the Cranelift backend\n".to_string()
             }
 
             IRInstruction::Label(name) => format!("{}:\n", name),
@@ -705,6 +724,7 @@ impl ARM64Generator {
                         code.push_str(&format!("    cmp x0, #{}\n", n));
                     }
                     IRValue::Str(_) => code.push_str("    cmp x0, #1\n"),
+                    IRValue::Func(_) => code.push_str("    cmp x0, #1\n"),
                 }
                 code.push_str(&format!("    b.ne {}\n", true_label));
                 code.push_str(&format!("    b {}\n", false_label));
@@ -725,6 +745,7 @@ impl ARM64Generator {
                             }
                         }
                         IRValue::Str(_) => code.push_str("    mov x0, #0\n"),
+                        IRValue::Func(_) => code.push_str("    mov x0, #0\n"),
                     }
                 } else {
                     code.push_str("    mov x0, #0\n");

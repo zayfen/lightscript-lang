@@ -1,13 +1,15 @@
 // Network builtins demo
 println("net demo");
-fetch("https://example.com");
-httpGet("https://example.com");
-httpPost("https://example.com/api", "body");
-httpPut("https://example.com/api", "body");
-httpDelete("https://example.com/api");
-download("https://example.com/file", "out.bin");
-upload("https://example.com/upload", "out.bin");
-websocketConnect("wss://example.com/ws");
-dnsLookup("example.com");
-ping("example.com");
+println(strlen(fetch("u")));
+println(strlen(httpGet("u")));
+println(strlen(httpPost("u", "x")));
+println(strlen(httpPut("u", "x")));
+println(strlen(httpDelete("u")));
+println(download("u", "net_demo.bin"));
+println(exists("net_demo.bin"));
+println(strlen(upload("u", "net_demo.bin")));
+println(websocketConnect("wss://example.com/ws"));
+println(strlen(dnsLookup("localhost")) >= 7);
+println(ping("localhost"));
+println(removeFile("net_demo.bin"));
 println("net done");

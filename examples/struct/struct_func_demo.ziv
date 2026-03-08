@@ -1,0 +1,17 @@
+// Struct as function parameter/return demo
+struct Person {
+    age: int;
+    score: int;
+}
+
+function consume(p: Person): int {
+    return p.age;
+}
+
+function produce(): Person {
+    return Person.(age = 18, score = 90);
+}
+
+let p: Person = produce();
+println(p.age)
+println(consume(p));

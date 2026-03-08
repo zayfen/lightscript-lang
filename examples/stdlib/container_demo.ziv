@@ -1,26 +1,42 @@
-// Container builtins demo
+// Container runtime demo
 println("container demo");
 
-vectorNew();
-vectorLen(0);
-vectorPush(0, 1);
-vectorPop(0);
-vectorGet(0, 0);
-vectorSet(0, 0, 1);
-vectorInsert(0, 0, 1);
-vectorRemove(0, 0);
-vectorContains(0, 1);
-vectorClear(0);
+let v = vectorNew();
+println(vectorLen(v));
+vectorPush(v, 10);
+vectorPush(v, 20);
+vectorInsert(v, 1, 15);
+println(vectorLen(v));
+println(vectorGet(v, 1));
+println(vectorContains(v, 20));
+println(vectorRemove(v, 0));
+vectorSet(v, 0, 99);
+println(vectorGet(v, 0));
+println(vectorPop(v));
+println(vectorLen(v));
+vectorClear(v);
+println(vectorLen(v));
 
-hashMapNew();
-hashMapLen(0);
-hashMapSet(0, "k", 1);
-hashMapGet(0, "k");
-hashMapHas(0, "k");
-hashMapRemove(0, "k");
-hashMapKeys(0);
-hashMapValues(0);
-hashMapClear(0);
-hashMapMerge(0, 0);
+let m = hashMapNew();
+hashMapSet(m, 1, 100);
+hashMapSet(m, 2, 200);
+println(hashMapLen(m));
+println(hashMapGet(m, 1));
+println(hashMapHas(m, 2));
+println(hashMapRemove(m, 2));
+println(hashMapHas(m, 2));
+
+let m2 = hashMapNew();
+hashMapSet(m2, 3, 300);
+hashMapMerge(m, m2);
+println(hashMapGet(m, 3));
+
+let keys = hashMapKeys(m);
+let values = hashMapValues(m);
+println(vectorLen(keys));
+println(vectorLen(values));
+
+hashMapClear(m);
+println(hashMapLen(m));
 
 println("container done");

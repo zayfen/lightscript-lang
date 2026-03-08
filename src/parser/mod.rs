@@ -90,7 +90,7 @@ impl Parser {
         while !self.match_token(&Token::RightBrace) {
             let field_name = self.consume_identifier()?;
             self.consume(&Token::Colon)?;
-            let field_ty = self.consume_identifier()?;
+            let field_ty = self.consume_type_name()?;
             fields.push(StructFieldDecl {
                 name: field_name,
                 ty: field_ty,
@@ -173,7 +173,7 @@ impl Parser {
 
         let type_annotation = if self.match_token(&Token::Colon) {
             self.advance();
-            Some(self.consume_identifier()?)
+            Some(self.consume_type_name()?)
         } else {
             None
         };
@@ -206,7 +206,7 @@ impl Parser {
 
             let type_annotation = if self.match_token(&Token::Colon) {
                 self.advance();
-                Some(self.consume_identifier()?)
+                Some(self.consume_type_name()?)
             } else {
                 None
             };
@@ -225,7 +225,7 @@ impl Parser {
 
         let return_type = if self.match_token(&Token::Colon) {
             self.advance();
-            Some(self.consume_identifier()?)
+            Some(self.consume_type_name()?)
         } else {
             None
         };
@@ -481,6 +481,21 @@ impl Parser {
                 Ok(name)
             }
             _ => Err(format!("Expected identifier, got {:?}", self.peek())),
+        }
+    }
+
+    fn consume_type_name(&mut self) -> ParseResult<String> {
+        match self.peek() {
+            Some(Token::Identifier(name)) => {
+                let name = name.clone();
+                self.advance();
+                Ok(name)
+            }
+            Some(Token::Function) => {
+                self.advance();
+                Ok("function".to_string())
+            }
+            _ => Err(format!("Expected type name, got {:?}", self.peek())),
         }
     }
 
@@ -909,6 +924,75 @@ mod tests {
         let mut parser = Parser::new("foo().(x = 1);");
         let err = parser.parse().unwrap_err();
         assert!(err.contains("Invalid struct initializer target"));
+    }
+
+    #[test]
+    fn test_parse_struct_param_and_struct_return_function() {
+        let src = r#"
+            struct Person { age: int; score: int; }
+            function consume(p: Person): int { return 1; }
+            function produce(): Person { return Person.(age = 18, score = 90); }
+            let p: Person = produce();
+            println(consume(p));
+        "#;
+        let mut parser = Parser::new(src);
+        let program = parser.parse().unwrap();
+        assert_eq!(program.statements.len(), 5);
+
+        match &program.statements[1] {
+            Stmt::FunctionDecl {
+                params,
+                return_type,
+                ..
+            } => {
+                assert_eq!(params.len(), 1);
+                assert_eq!(params[0].type_annotation.as_deref(), Some("Person"));
+                assert_eq!(return_type.as_deref(), Some("int"));
+            }
+            _ => panic!("expected function declaration"),
+        }
+
+        match &program.statements[2] {
+            Stmt::FunctionDecl {
+                return_type, body, ..
+            } => {
+                assert_eq!(return_type.as_deref(), Some("Person"));
+                assert!(matches!(
+                    body.first(),
+                    Some(Stmt::Return(Some(Expr::StructInit { .. })))
+                ));
+            }
+            _ => panic!("expected function declaration"),
+        }
+    }
+
+    #[test]
+    fn test_parse_function_typed_param() {
+        let src = r#"
+            function apply(f: function, v: int): int { return f(v); }
+        "#;
+        let mut parser = Parser::new(src);
+        let program = parser.parse().unwrap();
+        assert_eq!(program.statements.len(), 1);
+
+        match &program.statements[0] {
+            Stmt::FunctionDecl {
+                params,
+                return_type,
+                body,
+                ..
+            } => {
+                assert_eq!(params.len(), 2);
+                assert_eq!(params[0].type_annotation.as_deref(), Some("function"));
+                assert_eq!(params[1].type_annotation.as_deref(), Some("int"));
+                assert_eq!(return_type.as_deref(), Some("int"));
+                assert!(matches!(
+                    body.first(),
+                    Some(Stmt::Return(Some(Expr::Call { callee, .. }))) if callee == "f"
+                ));
+            }
+            _ => panic!("expected function declaration"),
+        }
     }
 
     #[test]

@@ -1,10 +1,10 @@
 //! Intermediate Representation (IR) for LightLang
 
-pub mod instructions;
 pub mod builder;
+pub mod instructions;
 
-pub use instructions::*;
 pub use builder::*;
+pub use instructions::*;
 
 use std::fmt;
 
@@ -20,7 +20,7 @@ impl IRModule {
             functions: Vec::new(),
         }
     }
-    
+
     pub fn add_function(&mut self, func: IRFunction) {
         self.functions.push(func);
     }

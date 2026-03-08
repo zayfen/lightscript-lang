@@ -8,6 +8,7 @@ pub enum IRValue {
     Const(i64),
     Var(String),
     Str(String),
+    Func(String),
 }
 
 impl fmt::Display for IRValue {
@@ -16,6 +17,7 @@ impl fmt::Display for IRValue {
             IRValue::Const(n) => write!(f, "{}", n),
             IRValue::Var(name) => write!(f, "%{}", name),
             IRValue::Str(value) => write!(f, "{:?}", value),
+            IRValue::Func(name) => write!(f, "@{}", name),
         }
     }
 }
@@ -116,6 +118,11 @@ pub enum IRInstruction {
         function: String,
         args: Vec<IRValue>,
     },
+    CallIndirect {
+        result: Option<String>,
+        function: IRValue,
+        args: Vec<IRValue>,
+    },
 
     // Control flow
     Label(String),
@@ -177,6 +184,24 @@ impl fmt::Display for IRInstruction {
                     write!(f, "  call @{}({})", function, args_str.join(", "))
                 }
             }
+            IRInstruction::CallIndirect {
+                result,
+                function,
+                args,
+            } => {
+                let args_str: Vec<String> = args.iter().map(|a| format!("{}", a)).collect();
+                if let Some(res) = result {
+                    write!(
+                        f,
+                        "  %{} = call_indirect {}({})",
+                        res,
+                        function,
+                        args_str.join(", ")
+                    )
+                } else {
+                    write!(f, "  call_indirect {}({})", function, args_str.join(", "))
+                }
+            }
             IRInstruction::Label(name) => write!(f, "{}:", name),
             IRInstruction::Jump(label) => write!(f, "  br label %{}", label),
             IRInstruction::CondBranch {
@@ -218,6 +243,7 @@ mod tests {
         assert_eq!(format!("{}", IRValue::Const(3)), "3");
         assert_eq!(format!("{}", IRValue::Var("x".to_string())), "%x");
         assert_eq!(format!("{}", IRValue::Str("x".to_string())), "\"x\"");
+        assert_eq!(format!("{}", IRValue::Func("foo".to_string())), "@foo");
         assert_eq!(format!("{}", IRType::I64), "i64");
         assert_eq!(format!("{}", IRType::Void), "void");
     }
@@ -278,6 +304,11 @@ mod tests {
                 result: None,
                 function: "bar".to_string(),
                 args: vec![],
+            },
+            IRInstruction::CallIndirect {
+                result: Some("ri".to_string()),
+                function: IRValue::Var("fp".to_string()),
+                args: vec![IRValue::Const(2)],
             },
             IRInstruction::Label("L0".to_string()),
             IRInstruction::Jump("L1".to_string()),

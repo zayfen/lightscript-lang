@@ -70,6 +70,10 @@ impl From<&str> for Type {
                 key: Box::new(Type::Any),
                 value: Box::new(Type::Any),
             },
+            "function" | "fn" => Type::Function {
+                params: vec![],
+                return_type: Box::new(Type::Any),
+            },
             "any" => Type::Any,
             _ => Type::Any,
         }
@@ -111,6 +115,13 @@ mod tests {
                 value: Box::new(Type::Any),
             }
         );
+        assert_eq!(
+            Type::from("function"),
+            Type::Function {
+                params: vec![],
+                return_type: Box::new(Type::Any),
+            }
+        );
         assert_eq!(Type::from("any"), Type::Any);
         assert_eq!(Type::from("unknown"), Type::Any);
     }
@@ -130,11 +141,11 @@ mod tests {
             ),
             "hashmap<string, int>"
         );
-        assert_eq!(format!("{}", Type::Vector(Box::new(Type::Int))), "vector<int>");
         assert_eq!(
-            format!("{}", Type::Struct("Person".to_string())),
-            "Person"
+            format!("{}", Type::Vector(Box::new(Type::Int))),
+            "vector<int>"
         );
+        assert_eq!(format!("{}", Type::Struct("Person".to_string())), "Person");
 
         let f = Type::Function {
             params: vec![Type::Int, Type::String],

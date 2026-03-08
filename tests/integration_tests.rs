@@ -342,3 +342,306 @@ fn test_module_style_example_runs_with_zero_exit_code() {
     );
     assert_eq!(String::from_utf8_lossy(&run.stdout), "");
 }
+
+#[test]
+fn test_struct_function_param_return_example_compiles_and_runs() {
+    let dir = tempdir().unwrap();
+    let example = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("examples")
+        .join("struct")
+        .join("struct_func_demo.ziv");
+
+    let output = Command::new(bin())
+        .arg(&example)
+        .arg("-o")
+        .arg("struct_func_demo_bin")
+        .current_dir(dir.path())
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "compile stderr: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let run = Command::new(dir.path().join("struct_func_demo_bin"))
+        .current_dir(dir.path())
+        .output()
+        .unwrap();
+    assert!(
+        run.status.success(),
+        "run stderr: {}",
+        String::from_utf8_lossy(&run.stderr)
+    );
+    assert_eq!(String::from_utf8_lossy(&run.stdout), "18\n18\n");
+}
+
+#[test]
+fn test_function_argument_example_compiles_and_runs() {
+    let dir = tempdir().unwrap();
+    let example = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("examples")
+        .join("function")
+        .join("function_arg_demo.ziv");
+
+    let output = Command::new(bin())
+        .arg(&example)
+        .arg("-o")
+        .arg("function_arg_demo_bin")
+        .current_dir(dir.path())
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "compile stderr: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let run = Command::new(dir.path().join("function_arg_demo_bin"))
+        .current_dir(dir.path())
+        .output()
+        .unwrap();
+    assert!(
+        run.status.success(),
+        "run stderr: {}",
+        String::from_utf8_lossy(&run.stderr)
+    );
+    assert_eq!(String::from_utf8_lossy(&run.stdout), "42\n43\n");
+}
+
+#[test]
+fn test_container_runtime_behaviour_compiles_and_runs() {
+    let dir = tempdir().unwrap();
+    let src = dir.path().join("container_runtime.ziv");
+    fs::write(
+        &src,
+        r#"
+        let v = vectorNew();
+        vectorPush(v, 7);
+        vectorPush(v, 9);
+        println(vectorLen(v));
+        println(vectorGet(v, 0));
+        println(vectorContains(v, 9));
+
+        let m = hashMapNew();
+        hashMapSet(m, 1, 100);
+        hashMapSet(m, 2, 200);
+        println(hashMapLen(m));
+        println(hashMapGet(m, 2));
+        println(hashMapHas(m, 3));
+        "#,
+    )
+    .unwrap();
+
+    let output = Command::new(bin())
+        .arg(&src)
+        .arg("-o")
+        .arg("container_runtime_bin")
+        .current_dir(dir.path())
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "compile stderr: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let run = Command::new(dir.path().join("container_runtime_bin"))
+        .current_dir(dir.path())
+        .output()
+        .unwrap();
+    assert!(
+        run.status.success(),
+        "run stderr: {}",
+        String::from_utf8_lossy(&run.stderr)
+    );
+    assert_eq!(String::from_utf8_lossy(&run.stdout), "2\n7\n1\n2\n200\n0\n");
+}
+
+#[test]
+fn test_stdlib_runtime_modules_behaviour_compiles_and_runs() {
+    let dir = tempdir().unwrap();
+    let src = dir.path().join("stdlib_runtime_modules.ziv");
+    fs::write(
+        &src,
+        r#"
+        println(strlen(concat("ab", "cd")));
+        println(strlen(substr("abcdef", 1, 3)));
+        println(char_at(to_upper("az"), 0));
+        println(contains(trim("  hi  "), "hi"));
+
+        println(writeFile("fs_a.txt", "abc"));
+        println(exists("fs_a.txt"));
+        println(fileSize("fs_a.txt"));
+        println(appendFile("fs_a.txt", "de"));
+        println(fileSize("fs_a.txt"));
+        println(copyFile("fs_a.txt", "fs_b.txt"));
+        println(fileSize("fs_b.txt"));
+        println(rename("fs_b.txt", "fs_c.txt"));
+        println(exists("fs_c.txt"));
+        println(removeFile("fs_c.txt"));
+        println(exists("fs_c.txt"));
+        println(mkdir("fs_dir"));
+        println(exists("fs_dir"));
+        println(removeDir("fs_dir"));
+        println(exists("fs_dir"));
+        println(strlen(readFile("fs_a.txt", "utf-8")));
+        println(mkdir("rd"));
+        println(vectorLen(readDir("rd")));
+        println(removeDir("rd"));
+
+        println(strlen(base64Encode("ab")));
+        println(strlen(base64Decode("YWI=")));
+        println(strlen(hexEncode("ab")));
+        println(strlen(hexDecode("6162")));
+        println(strlen(urlEncode("a b")));
+        println(strlen(urlDecode("a%20b")));
+        let bytes = utf8Encode("AZ");
+        println(vectorLen(bytes));
+        println(strlen(utf8Decode(bytes)));
+        println(strlen(csvEncode(bytes)));
+        println(vectorLen(csvDecode("1,2,3")));
+        println(strlen(queryStringify(12)));
+        println(hashMapLen(queryParse("a=1&b=2")));
+
+        println(strlen(md5("abc")));
+        println(strlen(sha1("abc")));
+        println(strlen(sha256("abc")));
+        println(strlen(sha512("abc")));
+        println(strlen(hmacSha256("abc", "k")));
+        println(strlen(pbkdf2("p", "s", 10)));
+        let encrypted = encryptAES("hello", "k");
+        println(strlen(encrypted));
+        println(strlen(decryptAES(encrypted, "k")));
+        println(verify("m", sign("m", "k"), "pub"));
+        println(strlen(randomBytes(8)));
+        println(strlen(randomUUID()));
+
+        println(strlen(fetch("http://example.com")));
+        println(strlen(httpGet("http://example.com")));
+        println(strlen(httpPost("http://example.com", "x")));
+        println(strlen(httpPut("http://example.com", "x")));
+        println(strlen(httpDelete("http://example.com")));
+        println(download("http://example.com", "net.txt"));
+        println(exists("net.txt"));
+        println(strlen(upload("http://example.com", "net.txt")));
+        println(websocketConnect("wss://example.com/ws"));
+        println(strlen(dnsLookup("localhost")));
+        println(ping("localhost"));
+        "#,
+    )
+    .unwrap();
+
+    let output = Command::new(bin())
+        .arg(&src)
+        .arg("-o")
+        .arg("stdlib_runtime_modules_bin")
+        .current_dir(dir.path())
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "compile stderr: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let run = Command::new(dir.path().join("stdlib_runtime_modules_bin"))
+        .current_dir(dir.path())
+        .output()
+        .unwrap();
+    assert!(
+        run.status.success(),
+        "run stderr: {}",
+        String::from_utf8_lossy(&run.stderr)
+    );
+    assert_eq!(
+        String::from_utf8_lossy(&run.stdout),
+        "4\n3\n65\n1\n1\n1\n3\n1\n5\n1\n5\n1\n1\n1\n0\n1\n1\n1\n0\n5\n1\n0\n1\n4\n2\n4\n2\n5\n3\n2\n2\n5\n3\n8\n2\n32\n40\n64\n128\n64\n64\n11\n5\n1\n16\n36\n22\n22\n25\n24\n25\n1\n1\n30\n1\n9\n1\n"
+    );
+}
+
+#[test]
+fn test_stdlib_math_array_js_io_runtime_behaviour_compiles_and_runs() {
+    let dir = tempdir().unwrap();
+    let src = dir.path().join("stdlib_math_array_js_io_runtime.ziv");
+    fs::write(
+        &src,
+        r#"
+        println(abs(-5));
+        let arr = push(0, 1);
+        push(arr, 2);
+        push(arr, 3);
+        println(arrlen(arr));
+        println(first(arr));
+        println(last(arr));
+        reverse(arr);
+        println(get(arr, 0));
+        set(arr, 1, 9);
+        println(get(arr, 1));
+        println(pop(arr));
+        println(arrlen(arr));
+
+        println(parseInt("2a", 16));
+        println(parseFloat("7.9"));
+        println(isNaN(1));
+        println(isFinite(1));
+        println(Number(8));
+        println(strlen(String(1234)));
+        println(Boolean(0));
+        println(jsonParse("{\"v\":17}"));
+        println(strlen(jsonStringify(77)));
+        println(includes("abc", "bc"));
+        println(indexOf("abc", "c"));
+        println(startsWith("abc", "a"));
+        println(endsWith("abc", "c"));
+        let parts = split("x,yy", ",");
+        println(vectorLen(parts));
+        println(vectorGet(parts, 0));
+        println(vectorGet(parts, 1));
+        println(strlen(replace("abc", "b", "zz")));
+        let mapped = map(arr, 0);
+        println(arrlen(mapped));
+        println(get(mapped, 1));
+        let filtered = filter(arr, 0);
+        println(arrlen(filtered));
+        println(reduce(arr, 0, 10));
+
+        eprint("E");
+        eprintln("R");
+        println(strlen(read()));
+        println(strlen(input("P> ")));
+        println(strlen(readAll()));
+        printf("Q:%lld\n", 5);
+        println(flush());
+        "#,
+    )
+    .unwrap();
+
+    let output = Command::new(bin())
+        .arg(&src)
+        .arg("-o")
+        .arg("stdlib_math_array_js_io_runtime_bin")
+        .current_dir(dir.path())
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "compile stderr: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let run = Command::new(dir.path().join("stdlib_math_array_js_io_runtime_bin"))
+        .current_dir(dir.path())
+        .output()
+        .unwrap();
+    assert!(
+        run.status.success(),
+        "run stderr: {}",
+        String::from_utf8_lossy(&run.stderr)
+    );
+    assert_eq!(
+        String::from_utf8_lossy(&run.stdout),
+        "5\n3\n1\n3\n3\n9\n1\n2\n42\n7\n0\n1\n8\n4\n0\n17\n2\n1\n2\n1\n1\n2\n1\n2\n4\n2\n10\n2\n22\n0\nP> 0\n0\nQ:5\n1\n"
+    );
+    assert_eq!(String::from_utf8_lossy(&run.stderr), "ER\n");
+}

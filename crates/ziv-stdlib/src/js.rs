@@ -319,9 +319,7 @@ mod tests {
         assert_param(parse_int, 0, "text", "string");
         assert_param(parse_int, 1, "radix", "i64");
 
-        let parse_float = stdlib
-            .get("parseFloat")
-            .expect("parseFloat must exist");
+        let parse_float = stdlib.get("parseFloat").expect("parseFloat must exist");
         assert_eq!(parse_float.return_type.as_deref(), Some("f64"));
         assert_eq!(parse_float.params.len(), 1);
         assert_param(parse_float, 0, "text", "string");

@@ -168,9 +168,7 @@ mod tests {
     fn test_encoding_function_signatures() {
         let stdlib = Stdlib::new();
 
-        let base64_encode = stdlib
-            .get("base64Encode")
-            .expect("base64Encode must exist");
+        let base64_encode = stdlib.get("base64Encode").expect("base64Encode must exist");
         assert_eq!(base64_encode.return_type.as_deref(), Some("string"));
         assert_eq!(base64_encode.params.len(), 1);
 

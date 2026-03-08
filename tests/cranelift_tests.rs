@@ -9,14 +9,14 @@
 //! This is a language uses JavaScript-inspired syntax with type annotations.
 //! It also has a rich type system ( static typing with type inference),
 //!    Output format: Native ELF executables for x86-64 Linux. No runtime dependencies.
- //!
+//!
 //! Key features:
 //! - Memory safety via region-based inference
 //! - Zero-cost abstractions ( modern syntax (JavaScript-like)
 //! - Type safety with strong types, compile-time types
 //! - System programming capabilities
 
- //!
+//!
 //! Built with:
 //! - logos (lexer generator)
 //! - lalrpop ( parser generator)

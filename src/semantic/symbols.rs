@@ -48,7 +48,7 @@ impl Scope {
             level,
         }
     }
-    
+
     pub fn with_parent(parent: Scope) -> Self {
         let level = parent.level + 1;
         Scope {
@@ -57,17 +57,17 @@ impl Scope {
             level,
         }
     }
-    
+
     pub fn insert(&mut self, symbol: Symbol) {
         self.symbols.insert(symbol.name.clone(), symbol);
     }
-    
+
     pub fn lookup(&self, name: &str) -> Option<&Symbol> {
-        self.symbols.get(name).or_else(|| {
-            self.parent.as_ref().and_then(|p| p.lookup(name))
-        })
+        self.symbols
+            .get(name)
+            .or_else(|| self.parent.as_ref().and_then(|p| p.lookup(name)))
     }
-    
+
     pub fn lookup_current(&self, name: &str) -> Option<&Symbol> {
         self.symbols.get(name)
     }
@@ -87,32 +87,32 @@ impl SymbolTable {
             scope_stack: vec![0],
         }
     }
-    
+
     pub fn enter_scope(&mut self) {
         let new_scope = Scope::with_parent(self.current_scope.clone());
         self.current_scope = new_scope;
         self.scope_stack.push(self.current_scope.level);
     }
-    
+
     pub fn exit_scope(&mut self) {
         if let Some(parent) = self.current_scope.parent.clone() {
             self.current_scope = *parent;
             self.scope_stack.pop();
         }
     }
-    
+
     pub fn define(&mut self, symbol: Symbol) {
         self.current_scope.insert(symbol);
     }
-    
+
     pub fn lookup(&self, name: &str) -> Option<&Symbol> {
         self.current_scope.lookup(name)
     }
-    
+
     pub fn lookup_current(&self, name: &str) -> Option<&Symbol> {
         self.current_scope.lookup_current(name)
     }
-    
+
     pub fn current_scope_level(&self) -> usize {
         self.current_scope.level
     }
@@ -125,10 +125,10 @@ mod tests {
     #[test]
     fn test_symbol_table() {
         let mut table = SymbolTable::new();
-        
+
         let symbol = Symbol::new("x".to_string(), SymbolKind::Variable, Type::Int, 0);
         table.define(symbol);
-        
+
         assert!(table.lookup("x").is_some());
         assert!(table.lookup("y").is_none());
     }
@@ -136,27 +136,27 @@ mod tests {
     #[test]
     fn test_nested_scope() {
         let mut table = SymbolTable::new();
-        
+
         // Define in outer scope
         let symbol = Symbol::new("x".to_string(), SymbolKind::Variable, Type::Int, 0);
         table.define(symbol);
-        
+
         // Enter new scope
         table.enter_scope();
-        
+
         // Should still find x
         assert!(table.lookup("x").is_some());
-        
+
         // Define shadowed x
         let symbol2 = Symbol::new("x".to_string(), SymbolKind::Variable, Type::Float, 1);
         table.define(symbol2);
-        
+
         // Should find shadowed x
         assert_eq!(table.lookup("x").unwrap().ty, Type::Float);
-        
+
         // Exit scope
         table.exit_scope();
-        
+
         // Should find original x
         assert_eq!(table.lookup("x").unwrap().ty, Type::Int);
     }

@@ -101,8 +101,12 @@ impl TypeChecker {
                     );
                 }
 
-                self.struct_defs
-                    .insert(name.clone(), StructDefinition { fields: field_types });
+                self.struct_defs.insert(
+                    name.clone(),
+                    StructDefinition {
+                        fields: field_types,
+                    },
+                );
                 Ok(())
             }
 
@@ -485,9 +489,9 @@ impl TypeChecker {
                 ));
             }
 
-            let expected = field_types.get(&field.name).ok_or_else(|| {
-                format!("Struct '{}' has no field '{}'", struct_name, field.name)
-            })?;
+            let expected = field_types
+                .get(&field.name)
+                .ok_or_else(|| format!("Struct '{}' has no field '{}'", struct_name, field.name))?;
             let actual = self.check_expr(&field.value)?;
             if !Self::is_assignable(expected, &actual) {
                 return Err(format!(
@@ -1192,7 +1196,10 @@ mod tests {
         }]);
         checker.check_program(&program).unwrap();
 
-        assert_eq!(checker.resolve_declared_type("Node"), Type::Struct("Node".to_string()));
+        assert_eq!(
+            checker.resolve_declared_type("Node"),
+            Type::Struct("Node".to_string())
+        );
         assert_eq!(checker.resolve_declared_type("Unknown"), Type::Any);
     }
 
@@ -1236,5 +1243,117 @@ mod tests {
             })
             .unwrap_err();
         assert!(type_mismatch_err.contains("Type mismatch"));
+    }
+
+    #[test]
+    fn test_struct_function_param_and_return_type_check() {
+        let program = Program::new(vec![
+            Stmt::StructDecl {
+                name: "Person".to_string(),
+                fields: vec![
+                    StructFieldDecl {
+                        name: "age".to_string(),
+                        ty: "int".to_string(),
+                    },
+                    StructFieldDecl {
+                        name: "score".to_string(),
+                        ty: "int".to_string(),
+                    },
+                ],
+            },
+            Stmt::FunctionDecl {
+                name: "ageOf".to_string(),
+                params: vec![Param {
+                    name: "p".to_string(),
+                    type_annotation: Some("Person".to_string()),
+                }],
+                return_type: Some("int".to_string()),
+                body: vec![Stmt::Return(Some(Expr::FieldAccess {
+                    object: Box::new(Expr::Identifier("p".to_string())),
+                    field: "age".to_string(),
+                }))],
+            },
+            Stmt::FunctionDecl {
+                name: "produce".to_string(),
+                params: vec![],
+                return_type: Some("Person".to_string()),
+                body: vec![Stmt::Return(Some(Expr::StructInit {
+                    struct_name: "Person".to_string(),
+                    fields: vec![
+                        StructFieldInit {
+                            name: "age".to_string(),
+                            value: Expr::Literal(Literal::Number(18)),
+                        },
+                        StructFieldInit {
+                            name: "score".to_string(),
+                            value: Expr::Literal(Literal::Number(90)),
+                        },
+                    ],
+                }))],
+            },
+            Stmt::VariableDecl {
+                name: "p".to_string(),
+                type_annotation: Some("Person".to_string()),
+                init: Some(Expr::Call {
+                    callee: "produce".to_string(),
+                    args: vec![],
+                }),
+                is_const: false,
+            },
+            Stmt::Expression(Expr::Call {
+                callee: "ageOf".to_string(),
+                args: vec![Expr::Identifier("p".to_string())],
+            }),
+        ]);
+
+        let mut checker = TypeChecker::new();
+        checker.check_program(&program).unwrap();
+    }
+
+    #[test]
+    fn test_function_parameter_accepts_function_argument() {
+        let program = Program::new(vec![
+            Stmt::FunctionDecl {
+                name: "inc".to_string(),
+                params: vec![Param {
+                    name: "x".to_string(),
+                    type_annotation: Some("int".to_string()),
+                }],
+                return_type: Some("int".to_string()),
+                body: vec![Stmt::Return(Some(Expr::Binary {
+                    left: Box::new(Expr::Identifier("x".to_string())),
+                    op: BinaryOp::Add,
+                    right: Box::new(Expr::Literal(Literal::Number(1))),
+                }))],
+            },
+            Stmt::FunctionDecl {
+                name: "apply".to_string(),
+                params: vec![
+                    Param {
+                        name: "f".to_string(),
+                        type_annotation: Some("function".to_string()),
+                    },
+                    Param {
+                        name: "v".to_string(),
+                        type_annotation: Some("int".to_string()),
+                    },
+                ],
+                return_type: Some("int".to_string()),
+                body: vec![Stmt::Return(Some(Expr::Call {
+                    callee: "f".to_string(),
+                    args: vec![Expr::Identifier("v".to_string())],
+                }))],
+            },
+            Stmt::Expression(Expr::Call {
+                callee: "apply".to_string(),
+                args: vec![
+                    Expr::Identifier("inc".to_string()),
+                    Expr::Literal(Literal::Number(41)),
+                ],
+            }),
+        ]);
+
+        let mut checker = TypeChecker::new();
+        checker.check_program(&program).unwrap();
     }
 }

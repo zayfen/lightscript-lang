@@ -152,9 +152,7 @@ mod tests {
         assert_param(eprint, 0, "value", "any");
         assert!(eprint.description.contains("stderr"));
 
-        let eprintln = stdlib
-            .get("eprintln")
-            .expect("eprintln builtin must exist");
+        let eprintln = stdlib.get("eprintln").expect("eprintln builtin must exist");
         assert_eq!(eprintln.return_type, None);
         assert_eq!(eprintln.params.len(), 1);
         assert_param(eprintln, 0, "value", "any");

@@ -1,12 +1,12 @@
 //! Semantic analyzer for LightLang
 
-pub mod types;
 pub mod symbols;
 pub mod type_checker;
+pub mod types;
 
-pub use types::*;
 pub use symbols::*;
 pub use type_checker::*;
+pub use types::*;
 
 use crate::parser::ast::*;
 
@@ -22,7 +22,7 @@ impl SemanticAnalyzer {
             type_checker: TypeChecker::new(),
         }
     }
-    
+
     /// Analyze a program for semantic errors
     pub fn analyze(&mut self, program: &Program) -> Result<(), String> {
         self.type_checker.check_program(program)
@@ -50,11 +50,11 @@ mod tests {
     fn test_analyze_variable() {
         let mut parser = crate::parser::Parser::new("let x = 42;");
         let program = parser.parse().unwrap();
-        
+
         let mut analyzer = SemanticAnalyzer::new();
         let result = analyzer.analyze(&program);
         assert!(result.is_ok());
-        
+
         // Check that x was defined with correct type
         let symbol = analyzer.type_checker.symbol_table.lookup("x");
         assert!(symbol.is_some());
@@ -65,7 +65,7 @@ mod tests {
     fn test_analyze_binary_expr() {
         let mut parser = crate::parser::Parser::new("let x = 1 + 2;");
         let program = parser.parse().unwrap();
-        
+
         let mut analyzer = SemanticAnalyzer::new();
         let result = analyzer.analyze(&program);
         assert!(result.is_ok());
@@ -92,7 +92,7 @@ mod tests {
     fn test_undefined_variable_error() {
         let mut parser = crate::parser::Parser::new("let y = x;");
         let program = parser.parse().unwrap();
-        
+
         let mut analyzer = SemanticAnalyzer::new();
         let result = analyzer.analyze(&program);
         assert!(result.is_err());

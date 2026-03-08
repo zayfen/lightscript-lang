@@ -1,223 +1,68 @@
-# Ziv 🌟
+# Ziv
 
-**A modern systems programming language that compiles to native ELF executables**
+Ziv 是一门正在快速演进的系统编程语言，语法风格接近 JavaScript，编译目标是原生可执行文件。
 
-[![License](https://img.shields.io/badge/license-MIT%2FApache--2.0-blue.svg)](LICENSE)
-[![Rust](https://img.shields.io/badge/rust-1.80%2B-orange.svg)](https://www.rust-lang.org/)
-[![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)]()
+## 文档导航
 
----
+- 中文文档入口：[docs/zh-CN/README.md](docs/zh-CN/README.md)
+- 语法教程（中文）：[docs/zh-CN/SYNTAX_TUTORIAL.md](docs/zh-CN/SYNTAX_TUTORIAL.md)
+- 标准库使用指南（中文）：[docs/zh-CN/STDLIB_GUIDE.md](docs/zh-CN/STDLIB_GUIDE.md)
+- 标准库完整 API（中文）：[docs/zh-CN/STDLIB_API.md](docs/zh-CN/STDLIB_API.md)
+- 编译器架构：[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 
-## 📖 简介
+## 当前能力概览
 
-**Ziv**（拉丁语 "光"）是一个现代化的系统编程语言，设计目标是：
+- 完整编译流水线：Lexer -> Parser -> Semantic -> IR -> Codegen -> Link
+- 语言特性：
+  - `from {"path"} import { symbol }` 模块导入
+  - `let/const` 声明、赋值
+  - `function` 定义、返回值、函数作为参数
+  - `if/else`、`while`、块作用域
+  - `struct` 定义、构造、字段访问、`+=` 字段覆盖
+- 标准库注册：117 个内置函数（IO/Math/String/Array/Container/JS/Filesystem/Net/Crypto/Encoding）
+- 代码生成后端：Cranelift（默认）、x86_64、ARM64
 
-- ✨ **简洁优雅** - 类 JavaScript 语法，易于学习
-- 🚀 **原生性能** - 直接编译为 x86-64 ELF 可执行文件
-- 🛡️ **类型安全** - 强类型系统，编译时检查
-- 🔧 **现代工具链** - 基于 Rust 实现，可靠且高效
+## 重要说明
 
----
+- 当前可执行运行时默认实现了：
+  - 输出相关内置函数（`print` / `println`）
+  - `container` 模块（`Vector` / `HashMap` 对应函数）
+- 其余标准库函数已完成符号注册、语义识别与示例覆盖，用于后续宿主实现或链接扩展运行时。
 
-## 🎯 特性
+## 快速开始
 
-### 核心功能
-
-- ✅ **完整的编译流水线**
-  - Lexer（词法分析）
-  - Parser（语法分析）
-  - Semantic Analyzer（语义分析）
-  - IR Generation（中间表示）
-  - Code Generation（代码生成）
-  - ELF Linking（链接）
-
-- ✅ **语言特性**
-  - 变量声明（`let`）
-  - 基本类型（整数、浮点数、字符串、布尔值）
-  - 算术运算
-  - 控制流（if/else, while）
-  - 函数定义和调用
-  - 递归支持
-
-- ✅ **标准库**
-  - IO 函数：print, println, read
-  - 数学函数：abs, min, max, sqrt, pow
-  - 字符串函数：strlen, concat, substr, trim
-  - 数组函数：push, pop, arrlen, reverse
-
-- ✅ **多平台代码生成**
-  - x86-64 汇编（GNU as）
-  - ARM64 支持
-  - Cranelift JIT 后端
-
----
-
-## 🚀 快速开始
-
-### 安装
+### 构建
 
 ```bash
-# 克隆仓库
-git clone https://github.com/zayfen/ziv.git
-cd ziv
-
-# 构建
 cargo build --release
-
-# 编译器位于 target/release/ziv
 ```
 
-### Hello World
-
-创建 `hello.ziv` 文件：
-
-```ziv
-println("Hello, Ziv! 🌟");
-```
-
-编译并运行：
+### 编译并运行
 
 ```bash
-./target/release/ziv hello.ziv -o hello
+./target/release/ziv examples/stdlib/hello.ziv -o hello
 ./hello
-# 输出: Hello, Ziv! 🌟
 ```
 
----
+### 运行测试
 
-## 📚 示例代码
-
-### 1. 基本运算
-
-```ziv
-let a = 10;
-let b = 20;
-let c = a + b;
-println(c);  // 输出: 30
+```bash
+cargo test --workspace --all-targets
 ```
 
-### 2. Fibonacci 数列
+## 示例目录
 
-```ziv
-function fib(n) {
-    if (n <= 1) {
-        return n;
-    }
-    return fib(n - 1) + fib(n - 2);
-}
+- 标准库调用示例：`examples/stdlib/`
+- `struct` 示例：`examples/struct/`
+- `from ... import` 示例：`examples/from_import/`
+- 函数参数传函数示例：`examples/function/function_arg_demo.ziv`
 
-let result = fib(10);
-println(result);  // 输出: 55
-```
-
-### 3. 标准库使用
-
-```ziv
-// 字符串操作
-let s = "Hello, World!";
-println(strlen(s));           // 13
-println(to_upper(s));          // HELLO, WORLD!
-
-// 数学函数
-println(abs(-10));            // 10
-println(max(5, 10));          // 10
-println(sqrt(16));            // 4.0
-
-// 数组操作
-let arr = [1, 2, 3, 4, 5];
-println(arrlen(arr));         // 5
-println(first(arr));          // 1
-println(last(arr));           // 5
-```
-
-更多示例见 [examples/stdlib/](examples/stdlib/)
-
----
-
-## 📖 文档
-
-- [标准库 API 文档](docs/STDLIB_API.md)
-- [开发文档](CLAUDE.md)
-- [架构设计](docs/ARCHITECTURE.md)
-
----
-
-## 🛠️ 编译器选项
+## 命令行
 
 ```bash
 ziv <source.ziv> [options]
 
-选项:
-  -o <output>      输出文件名（默认: a.out）
-  --keep-asm       保留生成的汇编文件
-  --help           显示帮助信息
+options:
+  -o <output>     指定输出可执行文件名（默认 a.out）
+  --keep-asm      保留中间汇编/目标文件
 ```
-
----
-
-## 📊 项目状态
-
-| 模块 | 状态 | 代码行数 |
-|------|------|---------|
-| Lexer | ✅ 完成 | 346 |
-| Parser | ✅ 完成 | 333 |
-| Semantic | ✅ 完成 | 485 |
-| IR | ✅ 完成 | 296 |
-| CodeGen | ✅ 完成 | 220 |
-| 标准库 | ✅ 完成 | 689 |
-| **总计** | - | **2,369** |
-
----
-
-## 🧪 测试
-
-```bash
-# 运行所有测试
-cargo test
-
-# 运行标准库测试
-cargo test --lib stdlib
-
-# 测试覆盖率
-cargo tarpaulin --out Html
-```
-
----
-
-## 🤝 贡献
-
-欢迎贡献！请查看 [CONTRIBUTING.md](CONTRIBUTING.md)
-
----
-
-## 📝 许可证
-
-双重许可：
-
-- MIT License
-- Apache License 2.0
-
-详见 [LICENSE-MIT](LICENSE-MIT) 和 [LICENSE-APACHE](LICENSE-APACHE)
-
----
-
-## 🙏 致谢
-
-感谢以下开源项目：
-
-- [Rust](https://www.rust-lang.org/) - 编程语言
-- [Logos](https://github.com/maciejhirsz/logos) - Lexer 生成器
-- [LALRPOP](https://github.com/lalrpop/lalrpop) - Parser 生成器
-- [Cranelift](https://github.com/bytecodealliance/wasmtime/tree/main/cranelift) - 代码生成后端
-
----
-
-## 📮 联系方式
-
-- **作者**: Zayfen
-- **GitHub**: https://github.com/zayfen/ziv
-- **Issues**: https://github.com/zayfen/ziv/issues
-
----
-
-**Ziv** - 让编程更简单、更高效！ 🌟

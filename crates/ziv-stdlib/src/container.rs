@@ -324,16 +324,22 @@ mod tests {
     #[test]
     fn test_vector_signatures() {
         let stdlib = Stdlib::new();
-        let vnew = stdlib.get("vectorNew").expect("vectorNew builtin must exist");
+        let vnew = stdlib
+            .get("vectorNew")
+            .expect("vectorNew builtin must exist");
         assert!(vnew.params.is_empty());
         assert_eq!(vnew.return_type.as_deref(), Some("vector"));
 
-        let vlen = stdlib.get("vectorLen").expect("vectorLen builtin must exist");
+        let vlen = stdlib
+            .get("vectorLen")
+            .expect("vectorLen builtin must exist");
         assert_eq!(vlen.params.len(), 1);
         assert_param(vlen, 0, "vec", "vector");
         assert_eq!(vlen.return_type.as_deref(), Some("i64"));
 
-        let vset = stdlib.get("vectorSet").expect("vectorSet builtin must exist");
+        let vset = stdlib
+            .get("vectorSet")
+            .expect("vectorSet builtin must exist");
         assert_eq!(vset.params.len(), 3);
         assert_param(vset, 0, "vec", "vector");
         assert_param(vset, 1, "index", "i64");
@@ -349,11 +355,15 @@ mod tests {
     #[test]
     fn test_hashmap_signatures() {
         let stdlib = Stdlib::new();
-        let mnew = stdlib.get("hashMapNew").expect("hashMapNew builtin must exist");
+        let mnew = stdlib
+            .get("hashMapNew")
+            .expect("hashMapNew builtin must exist");
         assert!(mnew.params.is_empty());
         assert_eq!(mnew.return_type.as_deref(), Some("hashmap"));
 
-        let mset = stdlib.get("hashMapSet").expect("hashMapSet builtin must exist");
+        let mset = stdlib
+            .get("hashMapSet")
+            .expect("hashMapSet builtin must exist");
         assert_eq!(mset.params.len(), 3);
         assert_param(mset, 0, "map", "hashmap");
         assert_param(mset, 1, "key", "any");
